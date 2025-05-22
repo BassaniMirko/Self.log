@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Point Cloud - Griglia Centrale</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #000; }
+    #info {
+      position: absolute;
+      top: 10px; left: 10px;
+      color: #fff; font-family: sans-serif;
+      background: rgba(0, 0, 0, 0.6); padding: 8px; border-radius: 4px;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">Premi 1 per griglia piatta centrata</div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+  <script>
+    let mappingData;
+    let images = [];
+    const planeSize = 30;
+
+    const gridSpacing = 1.2;
+    let camera;
+    let angle = 0;
+
+    function preload() {
+      loadJSON('point_to_image_map_quarter.json', json => {
+        mappingData = json;
+        console.log('✅ JSON caricato:', mappingData);
+        prepareImages();
+      });
+    }
+
+    function prepareImages() {
+      if (!mappingData || !mappingData.mapping) return;
+
+      const uniqueFiles = [...new Set(mappingData.mapping.map(item => item.image))];
+      uniqueFiles.forEach(fname => {
+        const imgPath = `images.copia/${fname}`;
+        loadImage(
+          imgPath,
+          img => {
+            images.push({ name: fname, img: img, x: 0, y: 0, z: 0 });
+          },
+          err => {
+            console.error('❌ Errore caricamento immagine:', fname);
+          }
+        );
+      });
+    }
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight, WEBGL);
+      camera = createCamera();
+      camera.setPosition(0, 0, 800);
+      camera.lookAt(0, 0, 0);
+      noStroke();
+    }
+
+    function draw() {
+      background(0);
+      orbitControl(1, 1, 0.05);
+      angle += 0.01;
+
+      for (let i = 0; i < images.length; i++) {
+        const { img, x, y, z } = images[i];
+
+        // ruota attorno a Y
+        const rotX = cos(angle) * x + sin(angle) * z;
+        const rotZ = -sin(angle) * x + cos(angle) * z;
+
+        push();
+          translate(rotX, y, rotZ);
+          billboard(rotX, y, rotZ);
+          texture(img);
+          plane(planeSize, planeSize);
+        pop();
+      }
+    }
+
+    function billboard(x, y, z) {
+      const camPos = createVector(camera.eyeX, camera.eyeY, camera.eyeZ);
+      const objPos = createVector(x, y, z);
+      const dir = p5.Vector.sub(camPos, objPos);
+
+      const thetaY = atan2(dir.x, dir.z);
+      const distXZ = sqrt(dir.x * dir.x + dir.z * dir.z);
+      const thetaX = atan2(dir.y, distXZ);
+
+      rotateY(thetaY);
+      rotateX(-thetaX);
+    }
+
+    function keyPressed() {
+      if (key === '1') {
+        ordinaGriglia();
+      }
+    }
+
+    function ordinaGriglia() {
+      const cols = ceil(sqrt(images.length));
+      const rows = ceil(images.length / cols);
+      const offsetX = -((cols - 1) * gridSpacing) / 2;
+      const offsetY = -((rows - 1) * gridSpacing) / 2;
+
+      for (let i = 0; i < images.length; i++) {
+        const col = i % cols;
+        const row = floor(i / cols);
+        images[i].x = col * gridSpacing + offsetX;
+        images[i].y = row * gridSpacing + offsetY;
+        images[i].z = 0;
+      }
+    }
+
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+    }
+  </script>
+</body>
+</html>
