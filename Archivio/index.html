@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>3D Point Cloud - Griglia Centrale</title>
+  <title>3D Point Cloud - Billboarded Images</title>
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     #info {
@@ -16,41 +16,44 @@
   </style>
 </head>
 <body>
-  <div id="info">Premi 1 per griglia piatta centrata</div>
+  <div id="info">Loading...</div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
   <script>
     let mappingData;
-    let images = [];
+    let images = {};
     const planeSize = 30;
 
-    const gridSpacing = 1.2;
+    const scaleX = -1000;
+    const scaleY = -1000;
+    const scaleZ = -1000;
+
+    const offsetX = 0;
+    const offsetY = -100;
+    const offsetZ = -200;
+
+    let center = { x: 0, y: 0, z: 0 };
     let camera;
-    let angle = 0;
+    let angle = 0; // rotazione automatica
 
     function preload() {
-      loadJSON('point_to_image_map_quarter.json', json => {
+      loadJSON('updated_point_to_image_map_quarter.json', json => {
         mappingData = json;
         console.log('✅ JSON caricato:', mappingData);
-        prepareImages();
+        computeCenter();
       });
     }
 
-    function prepareImages() {
-      if (!mappingData || !mappingData.mapping) return;
-
-      const uniqueFiles = [...new Set(mappingData.mapping.map(item => item.image))];
-      uniqueFiles.forEach(fname => {
-        const imgPath = `images.copia/${fname}`;
-        loadImage(
-          imgPath,
-          img => {
-            images.push({ name: fname, img: img, x: 0, y: 0, z: 0 });
-          },
-          err => {
-            console.error('❌ Errore caricamento immagine:', fname);
-          }
-        );
-      });
+    function computeCenter() {
+      let sumX = 0, sumY = 0, sumZ = 0;
+      let count = mappingData.mapping.length;
+      for (let item of mappingData.mapping) {
+        sumX += item.position[0];
+        sumY += item.position[1];
+        sumZ += item.position[2];
+      }
+      center.x = sumX / count;
+      center.y = sumY / count;
+      center.z = sumZ / count;
     }
 
     function setup() {
@@ -59,25 +62,62 @@
       camera.setPosition(0, 0, 800);
       camera.lookAt(0, 0, 0);
       noStroke();
+
+      if (mappingData && mappingData.mapping) {
+        const uniqueFiles = [...new Set(mappingData.mapping.map(item => item.image))];
+        uniqueFiles.forEach(fname => {
+          const imgPath = `images.copia/${fname}`;
+          loadImage(
+            imgPath,
+            img => {
+              images[fname] = img;
+              console.log('✅ Immagine caricata:', fname);
+            },
+            err => {
+              console.error('❌ Errore caricamento immagine:', fname);
+              console.error('Percorso tentato:', window.location.href + imgPath);
+            }
+          );
+        });
+      }
     }
 
     function draw() {
       background(0);
       orbitControl(1, 1, 0.05);
-      angle += 0.01;
+      angle += 0.01; // velocità di rotazione
 
-      for (let i = 0; i < images.length; i++) {
-        const { img, x, y, z } = images[i];
+      if (!mappingData || !mappingData.mapping) {
+        fill(255);
+        text('Nessun dato caricato', 0, 0);
+        return;
+      }
 
-        // ruota attorno a Y
-        const rotX = cos(angle) * x + sin(angle) * z;
-        const rotZ = -sin(angle) * x + cos(angle) * z;
+      for (let item of mappingData.mapping) {
+        const img = images[item.image];
+        if (!img) continue;
+
+        const px = (item.position[0] - center.x) * scaleX;
+        const py = (item.position[1] - center.y) * scaleY;
+        const pz = (item.position[2] - center.z) * scaleZ;
+
+        // Rotazione manuale della posizione attorno a Y
+        let pos = createVector(px, py, pz);
+        let rotated = createVector(
+          cos(angle) * pos.x + sin(angle) * pos.z,
+          pos.y,
+          -sin(angle) * pos.x + cos(angle) * pos.z
+        );
+
+        const tx = rotated.x + offsetX;
+        const ty = rotated.y + offsetY;
+        const tz = rotated.z + offsetZ;
 
         push();
-          translate(rotX, y, rotZ);
-          billboard(rotX, y, rotZ);
+          translate(tx, ty, tz);
+          billboard(tx, ty, tz);
           texture(img);
-          plane(planeSize, planeSize);
+          plane(planeSize * 0.5, planeSize * 0.5);
         pop();
       }
     }
@@ -93,27 +133,6 @@
 
       rotateY(thetaY);
       rotateX(-thetaX);
-    }
-
-    function keyPressed() {
-      if (key === '1') {
-        ordinaGriglia();
-      }
-    }
-
-    function ordinaGriglia() {
-      const cols = ceil(sqrt(images.length));
-      const rows = ceil(images.length / cols);
-      const offsetX = -((cols - 1) * gridSpacing) / 2;
-      const offsetY = -((rows - 1) * gridSpacing) / 2;
-
-      for (let i = 0; i < images.length; i++) {
-        const col = i % cols;
-        const row = floor(i / cols);
-        images[i].x = col * gridSpacing + offsetX;
-        images[i].y = row * gridSpacing + offsetY;
-        images[i].z = 0;
-      }
     }
 
     function windowResized() {
