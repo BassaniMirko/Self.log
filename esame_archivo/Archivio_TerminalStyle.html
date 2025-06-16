@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Archivio Interattivo</title>
+  <style>
+    body {
+      margin: 0;
+      background: #00000000;
+      color: #ddd;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      padding: 20px;
+    }
+    .prompt { color: #00ff00; }
+    .command { color: #ffffff; }
+    .system { color: #aaaaaa; }
+    .output { color: #dddddd; }
+    .blinker {
+      display: inline-block;
+      width: 10px;
+      background: #00ff00;
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 50% { background: transparent; } }
+
+    #galleria, #visualizzazione3D {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      opacity: 0;
+      transition: opacity 1s ease-in-out;
+      display: none;
+    }
+
+    #galleria.visible, #visualizzazione3D.visible {
+      opacity: 1;
+    }
+
+    /* Stile per la galleria quando è visibile */
+    #galleria {
+      z-index: 1;
+      background-color: #000;
+    }
+
+    .loading-sequence {
+      opacity: 1;
+      transition: opacity 0.5s ease-out;
+    }
+
+    .loading-sequence.fade-out {
+      opacity: 0;
+    }
+
+    h1 {
+      font-size: 12px;
+      color: #000000;
+      background-color: #ffffff;
+      font-weight: normal;
+      margin: 0;
+      padding: 0 4px;
+      display: inline-block;  /* Fa sì che l'evidenziazione si adatti al testo */
+    }
+
+    .container {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 3;
+      width: 20vw; /* 1/5 della larghezza viewport */
+      margin: 0;
+      overflow-x: hidden; /* previene lo scroll orizzontale */
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Modifica lo stile del visualizzatore 3D */
+    #visualizzazione3D {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+      display: block !important; /* Forza la visualizzazione */
+      opacity: 1 !important; /* Forza l'opacità */
+    }
+
+    #canvas3d {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Aggiusta il testo per evitare overflow */
+    p {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    #filter {
+        margin-top: 20px;
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        border-radius: 4px;
+    }
+
+    #classSelector {
+        width: 100%;
+        margin: 10px 0;
+        background: #111;
+        color: #ddd;
+        border: 1px solid #333;
+        padding: 5px;
+        font-family: "SFMono-Regular", Consolas, monospace;
+    }
+
+    .filter-controls {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .filter-controls button {
+        background: #000;
+        color: #00ff00;
+        border: 1px solid #00ff00;
+        padding: 5px 10px;
+        font-family: "SFMono-Regular", Consolas, monospace;
+        cursor: pointer;
+    }
+
+    .filter-controls button:hover {
+        background: #00ff00;
+        color: #000;
+    }
+
+    .gallery-link {
+        color: #00ff00;
+        text-decoration: none;
+        cursor: pointer;
+        background: none;
+        border: none;
+        font-family: inherit;
+        font-size: inherit;
+        padding: 0;
+        margin: 0;
+    }
+
+    .gallery-link:hover {
+        text-decoration: underline;
+        color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; z-index: 1000;"></div>
+  <div id="error" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: red; z-index: 1000;"></div>
+
+  <div class="container">
+    <!-- Simulazione terminale -->
+    <div class="system">
+        <h1 >Autoritratto computazionale</h1>
+        <p>Un archivio di 1000 immagini selezionate da un algoritmo a partire dalle mie fotografie personali.</p>
+        <p>La macchina ha riconosciuto soggetti ricorrenti, contorni e abitudini visive, restituendomi uno sguardo esterno su ciò che fotografo — e forse, su chi sono.</p>
+    </div>
+    <div class="system">==&gt; Loading <a href="galleria.html" class="gallery-link">gallery</a> and renderer</div>
+    <div class="output">✓ Modules attached</div>
+    <div class="system">==&gt; Starting system...</div>
+    <br>
+    <div class="prompt"><span class="blinker"></span></div>
+
+    <!-- Galleria con filtri -->
+    <div id="galleria">
+        <h1>GALLERIA</h1>
+        <div id="filter" class="system">
+            <p>Filtra per categoria:</p>
+            <select id="classSelector" multiple>
+                <!-- Le categorie verranno popolate da sketch2.js -->
+            </select>
+            <div class="filter-controls">
+                <button id="cycleButton" class="command">Avvia Ciclo</button>
+                <button id="resetButton" class="command">Reset Filtri</button>
+            </div>
+        </div>
+        <!-- Contenuto dinamico della galleria -->
+    </div>
+  </div> <!-- Chiusura del container -->
+
+    <!-- 3D Viewer -->
+    <div id="visualizzazione3D">
+      <canvas id="canvas3d" width="800" height="600"></canvas>
+    </div>
+
+    <!-- Etichetta hover (per sketch2.js) -->
+    <div id="hoverLabel" style="
+      position: absolute;
+      color: white;
+      background: rgba(0,0,0,0.7);
+      padding: 8px;
+      border-radius: 4px;
+      pointer-events: none;
+      display: none;
+      z-index: 999;
+      font-size: 13px;
+      font-family: monospace;
+    "></div>
+ <div id="filter">
+    <label>Filtra per classe:</label>
+    <select id="classSelector" multiple>
+    </select>
+    <button id="cycleButton" onclick="toggleAutoCycle()">Avvia Ciclo</button>
+  </div>
+  <!-- Importmap deve essere definito prima degli script che lo utilizzano -->
+  <script type="importmap">
+{
+    "imports": {
+        "three": "https://unpkg.com/three@0.160.1/build/three.module.js",
+        "three/addons/controls/OrbitControls.js": "https://unpkg.com/three@0.160.1/examples/jsm/controls/OrbitControls.js",
+        "three/addons/loaders/MTLLoader.js": "https://unpkg.com/three@0.160.1/examples/jsm/loaders/MTLLoader.js",
+        "three/addons/loaders/OBJLoader.js": "https://unpkg.com/three@0.160.1/examples/jsm/loaders/OBJLoader.js"
+    }
+}
+</script>
+
+  <!-- Script di utilità -->
+  <script type="module" src="loading.js"></script>
+  <script type="module" src="prova.js"></script>
+  <script type="module" src="sketch2.js"></script>
+
+  <!-- Script Three.js -->
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
+    import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+
+    const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 0, 5);
+
+    // Modifica l'inizializzazione del renderer
+    const container = document.querySelector('#visualizzazione3D');
+    const renderer = new THREE.WebGLRenderer({ 
+        antialias: true,
+        alpha: true,
+        canvas: document.querySelector('#canvas3d')
+    });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+
+    const loadingManager = new THREE.LoadingManager();
+    const loadingElement = document.getElementById('loading');
+    const errorElement = document.getElementById('error');
+
+    loadingManager.onProgress = function(url, itemsLoaded, itemsTotal) {
+      const progress = (itemsLoaded / itemsTotal * 100).toFixed(0);
+      loadingElement.textContent = `Caricamento: ${progress}%`;
+    };
+
+    loadingManager.onError = function(url) {
+      errorElement.style.display = 'block';
+      errorElement.textContent = `Errore nel caricamento di: ${url}`;
+    };
+
+    loadingManager.onLoad = function() {
+        loadingElement.style.display = 'none';
+        
+        // Mostra il visualizzatore 3D
+        const visualizzazione3D = document.querySelector('#visualizzazione3D');
+        visualizzazione3D.style.display = 'block';
+        visualizzazione3D.classList.add('visible');
+        
+        // Timer per la transizione dopo 40 secondi
+        setTimeout(() => {
+            // Reindirizza alla pagina della galleria
+            window.location.href = 'galleria.html';
+        }, 40000);
+    };
+
+    const mtlLoader = new MTLLoader(loadingManager);
+    const objLoader = new OBJLoader(loadingManager);
+
+    try {
+      mtlLoader.load(
+        'Untitled_Scan_17_07_49/textured_output.mtl',
+        (materials) => {
+          materials.preload();
+          objLoader.setMaterials(materials);
+          
+          objLoader.load(
+            'Untitled_Scan_17_07_49/textured_output.obj',
+            (object) => {
+              const box = new THREE.Box3().setFromObject(object);
+              const center = box.getCenter(new THREE.Vector3());
+              const size = box.getSize(new THREE.Vector3());
+              const maxDim = Math.max(size.x, size.y, size.z);
+              const scale = 2 / maxDim;
+              
+              object.scale.setScalar(scale);
+              object.position.sub(center.multiplyScalar(scale));
+              
+              scene.add(object);
+              
+              // Aggiusta la posizione della camera
+              const distance = 5;
+              camera.position.copy(center).add(new THREE.Vector3(distance, distance/2, distance));
+              camera.lookAt(center);
+              controls.target.copy(center);
+            },
+            (xhr) => {
+              console.log((xhr.loaded / xhr.total * 100) + '% caricato');
+            },
+            (error) => {
+              console.error('Errore nel caricamento del file OBJ:', error);
+              errorElement.style.display = 'block';
+              errorElement.textContent = 'Errore nel caricamento del modello 3D';
+            }
+          );
+        },
+        undefined,
+        (error) => {
+          console.error('Errore nel caricamento del file MTL:', error);
+          errorElement.style.display = 'block';
+          errorElement.textContent = 'Errore nel caricamento dei materiali';
+        }
+      );
+    } catch (e) {
+      console.error('Errore:', e);
+      errorElement.style.display = 'block';
+      errorElement.textContent = 'Errore imprevisto nel caricamento';
+    }
+
+    // Luci
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(2, 2, 2);
+    scene.add(directionalLight);
+
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    function updateRendererSize() {
+      const container = document.querySelector('#visualizzazione3D');
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      
+      renderer.setSize(width, height);
+    }
+
+    // Aggiungi questa funzione per il ridimensionamento
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.addEventListener('resize', onWindowResize);
+
+    const galleryLink = document.querySelector('.gallery-link');
+    
+    galleryLink.addEventListener('click', (e) => {
+        e.preventDefault(); // Previene il comportamento predefinito del link
+        
+        // Fade out del visualizzatore 3D
+        const visualizzazione3D = document.querySelector('#visualizzazione3D');
+        visualizzazione3D.classList.remove('visible');
+        
+        // Reindirizza dopo la transizione
+        setTimeout(() => {
+            window.location.href = 'galleria.html';
+        }, 1000);
+    });
+  </script>
+
+</body>
+</html>
