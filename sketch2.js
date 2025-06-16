@@ -120,8 +120,9 @@ function draw() {
   currentY = lerp(currentY, targetY, lerpFactor);
 
   // Calcola la posizione della camera con rotazione attorno al centro
-  const camX = centroid.x + zoom * cos(angle);
-const camZ = centroid.z + zoom * sin(angle);
+const radius = zoom;
+const camX = centroid.x + radius * cos(angle);
+const camZ = centroid.z + radius * sin(angle);
 const camY = centroid.y + currentY;
 
 camera.setPosition(camX, camY, camZ);
