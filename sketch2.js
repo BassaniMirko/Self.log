@@ -8,13 +8,18 @@ let autoCycleInterval = null;
 let allClasses = [];
 let projectedData = [];
 
-const scaleX = -1000, scaleY = -1000, scaleZ = -1000;
-const offsetX = 0, offsetY = -100, offsetZ = -200;
+const scaleX = -2000; // Aumentato da -1500
+const scaleY = -2000; // Aumentato da -1500
+const scaleZ = -2000; // Aumentato da -1500
+let offsetX = 0;
+let offsetY = -150; // aumentato da -100
+let offsetZ = -600; // Aumentato da -300 a -600
 
-let zoom = 800;  // valore iniziale dello zoom
-const minZoom = 40;  // zoom massimo (più vicino) aumentato per evitare zoom eccessivo
-const maxZoom = 2000; // zoom minimo (più lontano)
-const zoomSpeed = 0.02; // velocità dello zoom ridotta significativamente
+// Modifica le variabili globali di zoom
+let zoom = 6000;  // Aumentato il valore iniziale
+const minZoom = 2000; // Aumentato il valore minimo
+const maxZoom = 12000; // Aumentato il valore massimo
+const zoomSpeed = 0.001; // Ridotta la velocità dello zoom per un controllo più preciso
 const lerpFactor = 0.05; // interpolazione graduale
 
 // Aggiungi queste variabili globali all'inizio del file
@@ -31,9 +36,12 @@ let dragStartCameraY = 0;
 
 let objModel;
 let isModelLoaded = false;
-let loadingProgress = 0;
+//let loadingProgress = 0;
 let modelRotation = 0;
 let fadeOut = 255;
+
+let centroid = { x: 0, y: 0, z: 0 };
+let showCentroid = true;
 
 
 function preload() {
@@ -63,18 +71,31 @@ function preload() {
 
 function computeCenter() {
   let sx = 0, sy = 0, sz = 0;
+  let count = 0;
+  
   data.forEach(i => {
-    sx += i.position[0];
-    sy += i.position[1];
-    sz += i.position[2];
+    sx += (i.position[0] - center.x) * scaleX;
+    sy += (i.position[1] - center.y) * scaleY;
+    sz += (i.position[2] - center.z) * scaleZ;
+    count++;
   });
-  center = { x: sx / data.length, y: sy / data.length, z: sz / data.length };
+  
+  centroid = {
+    x: sx / count,
+    y: sy / count,
+    z: sz / count
+  };
+  
+  console.log('Centroide calcolato:', centroid);
 }
 
 function setup() {
   createCanvas(windowWidth, windowHeight, WEBGL);
   camera = createCamera();
-  camera.setPosition(0, 0, 800);
+  camera.setPosition(0, 0, 6000); // Aumentato ancora di più per una vista più distante
+  
+  // Ora questo non darà più errore
+  offsetZ = -1200; // Aumentato per compensare la camera più distante
   
   // Verifica che i dati siano caricati correttamente
   if (!data || !data.length) {
@@ -91,19 +112,21 @@ function setup() {
 function draw() {
   background(0);
 
+  // Aggiorna l'angolo di rotazione
   angle += 0.003;
 
   // Interpola la posizione corrente verso il target
   currentX = lerp(currentX, targetX, lerpFactor);
   currentY = lerp(currentY, targetY, lerpFactor);
 
-  // Calcola la posizione della camera con movimento smorzato
-  const camX = zoom * cos(angle) + currentX;
-  const camZ = zoom * sin(angle) + currentY;
-  const camY = currentY;
+  // Calcola la posizione della camera con rotazione attorno al centro
+  const camX = centroid.x + zoom * cos(angle);
+const camZ = centroid.z + zoom * sin(angle);
+const camY = centroid.y + currentY;
 
-  camera.setPosition(camX, camY, camZ);
-  camera.lookAt(currentX, currentY, 0);
+camera.setPosition(camX, camY, camZ);
+camera.lookAt(centroid.x, centroid.y + currentY, centroid.z);
+
 
   if (!data || !atlasImg) return;
 
@@ -176,7 +199,21 @@ function draw() {
     }
   });
 
+  if (showCentroid) {
+    drawCentroid();
+  }
 
+  // Disegna le coordinate del centroide sullo schermo
+  push();
+  fill(255);
+  noStroke();
+  textSize(14);
+  textAlign(LEFT, TOP);
+  text(`Centroide: 
+    X: ${nf(centroid.x, 0, 2)}
+    Y: ${nf(centroid.y, 0, 2)}
+    Z: ${nf(centroid.z, 0, 2)}`, 10, 10);
+  pop();
 }
 
 function billboard(x, y, z) {
@@ -377,34 +414,29 @@ function mouseReleased() {
 
 function mouseDragged() {
   if (isDragging) {
-    // Usa solo il movimento verticale (dy)
     const dy = mouseY - dragStartY;
-    
-    // Movimento più sensibile quando si è zoomati
-    const moveScale = map(zoom, minZoom, maxZoom, 0.5, 2);
-    
-    // Aggiorna solo la coordinata Y, mantieni X invariata
+    const moveScale = map(zoom, minZoom, maxZoom, 1, 4);
     targetY = dragStartCameraY - dy * moveScale;
-    
     return false;
   }
 }
 
 // Modifica anche la funzione mouseWheel per mantenere solo il movimento verticale
 function mouseWheel(event) {
-  const oldZoom = zoom;
+  event.preventDefault();
+  
   const zoomAmount = event.delta * zoomSpeed;
+  const oldZoom = zoom;
+  
+  // Applica lo zoom con smorzamento
   zoom = constrain(zoom * (1 + zoomAmount), minZoom, maxZoom);
   
+  // Calcola il rapporto di zoom per mantenere la posizione relativa
   const zoomRatio = zoom / oldZoom;
   
-  // Aggiorna solo la coordinata Y durante lo zoom
-  targetY = currentY * zoomRatio;
+  // Aggiorna la posizione Y mantenendo la proporzione
+  targetY *= zoomRatio;
   currentY *= zoomRatio;
-  
-  // Mantieni X a 0
-  targetX = 0;
-  currentX = 0;
   
   return false;
 }
@@ -438,4 +470,32 @@ function calculatePlaneSize(item, isSelected) {
   }
   
   return { width, height };
+}
+
+// Aggiungi questa funzione per disegnare il centroide
+function drawCentroid() {
+  push();
+  translate(centroid.x + offsetX, centroid.y + offsetY, centroid.z + offsetZ);
+  
+  // Disegna una sfera rossa al centro
+  stroke(255, 0, 0);
+  fill(255, 0, 0);
+  sphere(30);
+  
+  // Disegna gli assi X, Y, Z
+  stroke(255, 0, 0); // Rosso per X
+  line(0, 0, 0, 100, 0, 0);
+  stroke(0, 255, 0); // Verde per Y
+  line(0, 0, 0, 0, 100, 0);
+  stroke(0, 0, 255); // Blu per Z
+  line(0, 0, 0, 0, 0, 100);
+  
+  pop();
+}
+
+// Aggiungi un toggle per il centroide con il tasto 'c'
+function keyPressed() {
+  if (key === 'c' || key === 'C') {
+    showCentroid = !showCentroid;
+  }
 }

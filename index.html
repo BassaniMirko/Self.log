@@ -10,8 +10,8 @@
       color: #ddd;
       font-family: "SFMono-Regular", Consolas, monospace;
       font-size: 12px;
-      line-height: 1.6;
-      padding: 20px;
+      line-height: 1.3;
+      padding: 0px;
     }
     .prompt { color: #00ff00; }
     .command { color: #ffffff; }
@@ -241,7 +241,7 @@
     scene.background = new THREE.Color(0x000000);
 
     const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 0, 5);
+    camera.position.set(0, 0, 10); // Aumenta la distanza per vedere meglio il modello
 
     // Modifica l'inizializzazione del renderer
     const container = document.querySelector('#visualizzazione3D');
@@ -256,6 +256,9 @@
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
+    controls.rotateSpeed = 0.5;
+    controls.autoRotate = true; // Aggiunge rotazione automatica
+    controls.autoRotateSpeed = 0.5; // Velocità di rotazione
 
     const loadingManager = new THREE.LoadingManager();
     const loadingElement = document.getElementById('loading');
@@ -289,54 +292,244 @@
     const mtlLoader = new MTLLoader(loadingManager);
     const objLoader = new OBJLoader(loadingManager);
 
+    let constructionProgress = 0;
+    let originalGeometry;
+    let constructedGeometry;
+    let constructedMesh;
+    let materials;
+
     try {
       mtlLoader.load(
         'Untitled_Scan_17_07_49/textured_output.mtl',
-        (materials) => {
+        (loadedMaterials) => {
+          materials = loadedMaterials;
           materials.preload();
           objLoader.setMaterials(materials);
           
           objLoader.load(
             'Untitled_Scan_17_07_49/textured_output.obj',
             (object) => {
+              // Centra il modello
               const box = new THREE.Box3().setFromObject(object);
               const center = box.getCenter(new THREE.Vector3());
               const size = box.getSize(new THREE.Vector3());
+              
+              // Calcola la scala appropriata
               const maxDim = Math.max(size.x, size.y, size.z);
-              const scale = 2 / maxDim;
+              const scale = 5 / maxDim; // Aumenta questo valore per un modello più grande
               
-              object.scale.setScalar(scale);
-              object.position.sub(center.multiplyScalar(scale));
+              originalGeometry = object.children[0].geometry;
+              constructedGeometry = new THREE.BufferGeometry();
               
-              scene.add(object);
+              // Inizializza gli array per i vertici e le facce
+              const vertices = new Float32Array(originalGeometry.attributes.position.array.length);
+              const uvs = new Float32Array(originalGeometry.attributes.uv.array.length);
+              const normals = new Float32Array(originalGeometry.attributes.normal.array.length);
               
-              // Aggiusta la posizione della camera
-              const distance = 5;
-              camera.position.copy(center).add(new THREE.Vector3(distance, distance/2, distance));
-              camera.lookAt(center);
-              controls.target.copy(center);
-            },
-            (xhr) => {
-              console.log((xhr.loaded / xhr.total * 100) + '% caricato');
-            },
-            (error) => {
-              console.error('Errore nel caricamento del file OBJ:', error);
-              errorElement.style.display = 'block';
-              errorElement.textContent = 'Errore nel caricamento del modello 3D';
+              constructedGeometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+              constructedGeometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+              constructedGeometry.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
+              
+              // Crea il mesh con la geometria vuota
+              constructedMesh = new THREE.Mesh(
+                constructedGeometry, 
+                new THREE.MeshBasicMaterial({ wireframe: true })
+              );
+              
+              // Applica posizione e scala
+              constructedMesh.position.copy(center).multiplyScalar(-1);
+              constructedMesh.scale.multiplyScalar(scale);
+              
+              scene.add(constructedMesh);
+              startConstruction();
             }
           );
-        },
-        undefined,
-        (error) => {
-          console.error('Errore nel caricamento del file MTL:', error);
-          errorElement.style.display = 'block';
-          errorElement.textContent = 'Errore nel caricamento dei materiali';
         }
       );
     } catch (e) {
       console.error('Errore:', e);
       errorElement.style.display = 'block';
       errorElement.textContent = 'Errore imprevisto nel caricamento';
+    }
+
+    function startConstruction() {
+      const totalVertices = originalGeometry.attributes.position.array.length;
+      const constructionSpeed = 1000; // Vertici per frame
+      
+      function updateConstruction() {
+        if (constructionProgress >= totalVertices) {
+          // Costruzione completata, applica le texture
+          applyTextures();
+          return;
+        }
+        
+        // Copia un batch di vertici
+        for (let i = 0; i < constructionSpeed && constructionProgress < totalVertices; i++) {
+          const index = constructionProgress;
+          constructedGeometry.attributes.position.array[index] = originalGeometry.attributes.position.array[index];
+          
+          if (index % 3 === 2) { // Ogni tre vertici (una faccia completa)
+            const uvIndex = Math.floor(index / 3) * 2;
+            if (uvIndex + 1 < originalGeometry.attributes.uv.array.length) {
+              constructedGeometry.attributes.uv.array[uvIndex] = originalGeometry.attributes.uv.array[uvIndex];
+              constructedGeometry.attributes.uv.array[uvIndex + 1] = originalGeometry.attributes.uv.array[uvIndex + 1];
+            }
+            
+            constructedGeometry.attributes.normal.array[index - 2] = originalGeometry.attributes.normal.array[index - 2];
+            constructedGeometry.attributes.normal.array[index - 1] = originalGeometry.attributes.normal.array[index - 1];
+            constructedGeometry.attributes.normal.array[index] = originalGeometry.attributes.normal.array[index];
+          }
+          
+          constructionProgress++;
+        }
+        
+        constructedGeometry.attributes.position.needsUpdate = true;
+        constructedGeometry.attributes.uv.needsUpdate = true;
+        constructedGeometry.attributes.normal.needsUpdate = true;
+        
+        requestAnimationFrame(updateConstruction);
+      }
+      
+      updateConstruction();
+    }
+
+    // Modifica la funzione applyTextures per includere l'animazione di avvicinamento
+    function applyTextures() {
+        const duration = 2000;
+        const startTime = Date.now();
+        
+        function updateMaterial() {
+            const progress = (Date.now() - startTime) / duration;
+            
+            if (progress >= 1) {
+                constructedMesh.material = materials.materials[Object.keys(materials.materials)[0]];
+                startTransitionToGallery();
+                return;
+            }
+            
+            // Interpolazione tra wireframe e texture
+            const material = new THREE.MeshPhongMaterial({
+                wireframe: true,
+                wireframeLinewidth: 1 * (1 - progress),
+                opacity: progress,
+                transparent: true,
+                map: materials.materials[Object.keys(materials.materials)[0]].map
+            });
+            
+            constructedMesh.material = material;
+            requestAnimationFrame(updateMaterial);
+        }
+        
+        updateMaterial();
+    }
+
+    // Aggiungi questa nuova funzione per la transizione
+    function startTransitionToGallery() {
+        const startPosition = constructedMesh.position.clone();
+        const startRotation = constructedMesh.rotation.clone();
+        const startScale = constructedMesh.scale.clone();
+        
+        const duration = 3000; // 3 secondi per la transizione
+        const startTime = Date.now();
+        
+        // Disabilita i controlli orbitali durante la transizione
+        controls.enabled = false;
+        
+        function updatePosition() {
+            const progress = (Date.now() - startTime) / duration;
+            const easing = easeInOutCubic(progress); // Funzione di easing per movimento più naturale
+            
+            if (progress >= 1) {
+                // Fade out finale e reindirizzamento
+                const visualizzazione3D = document.querySelector('#visualizzazione3D');
+                visualizzazione3D.style.opacity = '0';
+                
+                setTimeout(() => {
+                    window.location.href = 'galleria.html';
+                }, 1000);
+                return;
+            }
+            
+            // Avvicina il modello alla camera
+            constructedMesh.position.z = startPosition.z + (8 * easing); // Avvicina di 8 unità
+            
+            // Ruota leggermente il modello
+            constructedMesh.rotation.y = startRotation.y + (Math.PI * 2 * easing);
+            
+            // Scala il modello
+            const scale = 1 + (2 * easing); // Aumenta la scala del 200%
+            constructedMesh.scale.set(
+                startScale.x * scale,
+                startScale.y * scale,
+                startScale.z * scale
+            );
+            
+            // Aggiungi questi effetti nella funzione updatePosition
+            // Effetto di dissolvenza per le luci
+            ambientLight.intensity = 0.5 * (1 - easing);
+            directionalLight.intensity = 0.8 * (1 - easing);
+            
+            // Effetto di vignettatura
+            const vignetteIntensity = easing * 0.8;
+            scene.background = new THREE.Color(
+                vignetteIntensity * 0x00,
+                vignetteIntensity * 0x00,
+                vignetteIntensity * 0x00
+            );
+            
+            requestAnimationFrame(updatePosition);
+        }
+        
+        updatePosition();
+    }
+
+    // Aggiungi questa funzione di easing per un movimento più naturale
+    function easeInOutCubic(t) {
+        return t < 0.5
+            ? 4 * t * t * t
+            : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+
+    function addConstructionParticles() {
+      const geometry = new THREE.BufferGeometry();
+      const vertices = [];
+      
+      for (let i = 0; i < 1000; i++) {
+          vertices.push(
+              Math.random() * 10 - 5,
+              Math.random() * 10 - 5,
+              Math.random() * 10 - 5
+          );
+      }
+      
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+      
+      const material = new THREE.PointsMaterial({
+          color: 0x00ff00,
+          size: 0.05
+      });
+      
+      const points = new THREE.Points(geometry, material);
+      scene.add(points);
+      
+      return points;
+    }
+
+    function addConstructionSound() {
+      const listener = new THREE.AudioListener();
+      camera.add(listener);
+      
+      const sound = new THREE.Audio(listener);
+      const audioLoader = new THREE.AudioLoader();
+      
+      audioLoader.load('path/to/construction-sound.mp3', function(buffer) {
+          sound.setBuffer(buffer);
+          sound.setLoop(true);
+          sound.setVolume(0.5);
+          sound.play();
+      });
+      
+      return sound;
     }
 
     // Luci
@@ -350,6 +543,12 @@
     function animate() {
         requestAnimationFrame(animate);
         controls.update();
+        
+        // Aggiungi un leggero movimento ondulatorio al modello quando non è in transizione
+        if (controls.enabled && constructedMesh) {
+            constructedMesh.position.y += Math.sin(Date.now() * 0.001) * 0.0005;
+        }
+        
         renderer.render(scene, camera);
     }
     animate();
