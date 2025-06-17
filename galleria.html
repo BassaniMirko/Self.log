@@ -35,25 +35,25 @@
             position: fixed;
             top: 20px;
             left: 20px;
-            width: 20vw;
+            width: 350px;
             z-index: 2;
         }
 
         #filter {
             margin-top: 0px;
             padding: 0px;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.0);
             border-radius: 4px;
             display: flex;
-            align-items: flex-start;
+            align-items: flex-orizontal;
             gap: 5px;
             height: auto;          /* Altezza automatica */
             overflow: visible;     /* Mostra tutto il contenuto */
         }
 
         .filter-controls {
-            display: flex-orizontal;
-            flex-direction: column;
+            display: flex;
+            
             gap: 5px; /* Spazio tra i bottoni */
         }
 
@@ -169,6 +169,14 @@
             background: #fff;
             color: #000;
         }
+
+        #canvasContainer {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 70%;
+            height: 100%;
+        }
     </style>
 </head>
 <body>
@@ -181,16 +189,53 @@
             <p>La macchina ha riconosciuto soggetti ricorrenti, contorni e abitudini visive, restituendomi uno sguardo esterno su ciò che fotografo — e forse, su chi sono.</p>
         </div>
 
+        <!-- Modifica la struttura del div filter -->
         <div id="filter" class="system">
             <div>
-                <p style="margin:0px; color:#ffffff">Filtra per categoria:</p>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <p style="margin:0px; color:#ffffff">Filtra per categoria:</p>
+                    <div class="filter-controls" style="margin: 0;">
+                        <button id="cycleButton" onclick="toggleAutoCycle()">avvia</button>
+                    </div>
+                </div>
                 <div id="classSelector">
                     <!-- Le categorie verranno popolate da sketch2.js -->
                 </div>
-            </div>
-            <div class="filter-controls">
-                <button id="cycleButton" onclick="toggleAutoCycle()">avvia</button>
-            
+                
+                <!-- Modifica la sezione dei bottoni -->
+                <div style="
+                    display: flex;
+                    align-items: center;
+                    gap: 15px;
+                    margin-top: 15px;">
+                    
+                    <button id="view3DButton" 
+                            onclick="toggleDateTimeView()" 
+                            style="
+                                background: transparent;
+                                color: #ddd;
+                                border: none;
+                                padding: 0;
+                                font-family: 'SFMono-Regular', Consolas, monospace;
+                                font-size: 12px;
+                                cursor: pointer;">
+                        Date time
+                    </button>
+
+                    <button id="startVisualization" 
+                            onclick="startVisualization()" 
+                            style="
+                                background: transparent;
+                                color: #ddd;
+                                border: none;
+                                padding: 0;
+                                font-family: 'SFMono-Regular', Consolas, monospace;
+                                font-size: 12px;
+                                cursor: pointer;">
+                        
+                        <button id="gridTimeButton" onclick="toggleGridTimeView()">Griglia temporale</button>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -208,8 +253,82 @@
         font-size: 13px;
         font-family: monospace;
     "></div>
+    <div id="canvasContainer" style="position: absolute; right: 0; top: 0; width: 100%; height: 100%;">
+      <!-- Il canvas verrà creato qui da p5.js -->
+    </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
   <script src="sketch2.js"></script>
     
+    <!-- Aggiunto script per il caricamento della visualizzazione 3D -->
+    <script>
+    function load3DView() {
+        // Animazione del bottone durante il caricamento
+        const button = document.getElementById('view3DButton');
+        button.style.animation = 'blink 1s infinite';
+        button.textContent = 'caricamento...';
+
+        // Carica il nuovo script
+        const script = document.createElement('script');
+        script.src = 'loading.js';
+        script.onload = () => {
+            // Quando il caricamento è completato
+            button.style.animation = 'none';
+            button.style.background = '#fff';
+            button.style.color = '#000';
+            button.textContent = 'visualizzazione caricata';
+        };
+        script.onerror = () => {
+            // In caso di errore
+            button.style.animation = 'none';
+            button.textContent = 'errore caricamento';
+            button.style.color = '#ff0000';
+        };
+        document.body.appendChild(script);
+    }
+
+    function startVisualization() {
+        const button = document.getElementById('startVisualization');
+        button.style.animation = 'blink 2s infinite';
+        button.textContent = 'caricamento...';
+        
+        // Rimuovi gli script esistenti
+        const oldScripts = document.querySelectorAll('script[src="sketch2.js"], script[src="prova.js"]');
+        oldScripts.forEach(script => script.remove());
+        
+        // Pulisci il container
+        const container = document.getElementById('canvasContainer');
+        container.innerHTML = '';
+        
+        // Carica l'atlas prima di prova.js
+        const atlasPromise = new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = 'atlas_originali.jpg';
+        });
+        
+        atlasPromise.then(() => {
+            // Carica prova.js dopo che l'atlas è stato caricato
+            const script = document.createElement('script');
+            script.src = 'prova.js';
+            script.onload = () => {
+                button.textContent = 'visualizzazione avviata';
+                console.log('Visualizzazione date/time avviata');
+            };
+            script.onerror = (e) => {
+                button.style.animation = 'none';
+                button.textContent = 'errore';
+                button.style.color = '#ff0000';
+                console.error('Errore nel caricamento di prova.js:', e);
+            };
+            document.body.appendChild(script);
+        }).catch(error => {
+            console.error('Errore nel caricamento dell\'atlas:', error);
+            button.style.animation = 'none';
+            button.textContent = 'errore atlas';
+            button.style.color = '#ff0000';
+        });
+    }
+    </script>
 </body>
 </html>

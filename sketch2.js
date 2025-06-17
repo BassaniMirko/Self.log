@@ -7,26 +7,29 @@ let currentClassIndex = 0;
 let autoCycleInterval = null;
 let allClasses = [];
 let projectedData = [];
+let isGridTimeView = false;
 
-const scaleX = -2000; // Aumentato da -1500
-const scaleY = -2000; // Aumentato da -1500
-const scaleZ = -2000; // Aumentato da -1500
+const scaleX = -1000; // Aumentato da -1500
+const scaleY = -1000; // Aumentato da -1500
+const scaleZ = -1000; // Aumentato da -1500
 let offsetX = 0;
-let offsetY = -150; // aumentato da -100
-let offsetZ = -600; // Aumentato da -300 a -600
+let offsetY = -100; // aumentato da -100
+let offsetZ = -300; // Aumentato da -300 a -600
 
 // Modifica le variabili globali di zoom
-let zoom = 6000;  // Aumentato il valore iniziale
-const minZoom = 2000; // Aumentato il valore minimo
-const maxZoom = 12000; // Aumentato il valore massimo
+let zoom = 8000;  // Aumentato per compensare il FOV più stretto
+const minZoom = 1000; // Aumentato il valore minimo
+const maxZoom = 30000; // Aumentato il valore massimo
 const zoomSpeed = 0.001; // Ridotta la velocità dello zoom per un controllo più preciso
 const lerpFactor = 0.05; // interpolazione graduale
 
 // Aggiungi queste variabili globali all'inizio del file
 let targetX = 0;
 let targetY = 0;
+let targetZ = 0;
 let currentX = 0;
 let currentY = 0;
+let currentZ = 0;
 
 let isDragging = false;
 let dragStartX = 0;
@@ -43,6 +46,19 @@ let fadeOut = 255;
 let centroid = { x: 0, y: 0, z: 0 };
 let showCentroid = true;
 
+let centroidAnimation = {
+    isAnimating: true,
+    startZ: -3000,    // Posizione di partenza molto lontana
+    targetZ: -600,    // Posizione finale (il tuo offsetZ attuale)
+    progress: 1,
+    duration: 3300    // Durata dell'animazione in millisecondi
+};
+
+let animationStartTime = 0;
+
+// Aggiungi queste variabili globali per la vista data/ora
+let isDateTimeView = false;
+let timeData = null;
 
 function preload() {
   // Modifica il caricamento dell'atlas per gestire meglio gli errori
@@ -68,31 +84,99 @@ function preload() {
       console.error('Errore caricamento JSON:', error);
     });
 }
+function calculateGridTimePosition(dateString) {
+  if (!dateString) return [0, 0, 0];
+
+  const [year, month, day] = dateString.split('-').map(Number);
+
+  const x = (month - 1) * 200;      // mesi → X (1–12)
+  const y = (day - 1) * 100;        // giorni → Y (1–31)
+  const z = (year - 2020) * 400;    // anni → Z (dal 2020 in poi)
+
+  return [x, y, z];
+}
+function organizeDataByTime(timeData) {
+  return timeData.map(item => ({
+    ...item,
+    position: calculateGridTimePosition(item.date),
+    class: getTimeCategory(item.time)
+  }));
+}
+function toggleGridTimeView() {
+  const button = document.getElementById('gridTimeButton');
+  isGridTimeView = !isGridTimeView;
+
+  button.style.animation = 'blink 1s infinite';
+  button.textContent = 'caricamento...';
+
+  loadData(true).then(() => {
+    button.style.animation = 'none';
+    button.textContent = isGridTimeView ? 'vista normale' : 'Griglia temporale';
+    resetView();
+  });
+}
+function drawGridAxes() {
+  push();
+  stroke(255, 50);
+  for (let i = 0; i < 12; i++) {
+    line(i*200, 0, 0, i*200, 3000, 0); // mesi
+  }
+  for (let i = 0; i < 31; i++) {
+    line(0, i*100, 0, 2400, i*100, 0); // giorni
+  }
+  for (let i = 0; i <= 5; i++) {
+    line(0, 0, i*400, 2400, 0, i*400); // anni
+  }
+  pop();
+}
 
 function computeCenter() {
-  let sx = 0, sy = 0, sz = 0;
-  let count = 0;
-  
-  data.forEach(i => {
-    sx += (i.position[0] - center.x) * scaleX;
-    sy += (i.position[1] - center.y) * scaleY;
-    sz += (i.position[2] - center.z) * scaleZ;
-    count++;
-  });
-  
-  centroid = {
-    x: sx / count,
-    y: sy / count,
-    z: sz / count
-  };
-  
-  console.log('Centroide calcolato:', centroid);
+    let sx = 0, sy = 0, sz = 0;
+    let count = 0;
+
+    // Verifica che data sia un array non vuoto
+    if (!Array.isArray(data) || data.length === 0) {
+        console.warn('Nessun dato disponibile per calcolare il centroide');
+        return;
+    }
+
+    data.forEach(item => {
+        // Verifica che l'item abbia le proprietà position
+        if (item && item.position && Array.isArray(item.position)) {
+            sx += (item.position[0] || 0) * scaleX;
+            sy += (item.position[1] || 0) * scaleY;
+            sz += (item.position[2] || 0) * scaleZ;
+            count++;
+        }
+    });
+
+    if (count > 0) {
+        centroid = {
+            x: sx / count,
+            y: sy / count,
+            z: sz / count
+        };
+        
+        console.log('Centroide calcolato:', {
+            x: centroid.x.toFixed(2),
+            y: centroid.y.toFixed(2),
+            z: centroid.z.toFixed(2)
+        });
+    } else {
+        console.warn('Nessun dato valido per calcolare il centroide');
+    }
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight, WEBGL);
+  // Crea il canvas nel container
+  const container = document.getElementById('canvasContainer');
+  const canvas = createCanvas(container.offsetWidth, container.offsetHeight, WEBGL);
+  canvas.parent(container);
+  
+  // Crea la camera con un FOV più stretto (simile a una focale più lunga)
   camera = createCamera();
-  camera.setPosition(0, 0, 6000); // Aumentato ancora di più per una vista più distante
+  perspective(PI/6, width/height, 100, 30000); // FOV di 30 gradi invece di 60
+  camera.setPosition(0, 0, 8000);
   
   // Ora questo non darà più errore
   offsetZ = -1200; // Aumentato per compensare la camera più distante
@@ -107,28 +191,51 @@ function setup() {
     console.error('Atlas non caricato correttamente');
     return;
   }
+  
+  animationStartTime = millis();
+  centroidAnimation.isAnimating = true;
+}
+
+// Aggiorna anche windowResized
+function windowResized() {
+  const container = document.getElementById('canvasContainer');
+  resizeCanvas(container.offsetWidth, container.offsetHeight);
 }
 
 function draw() {
   background(0);
 
-  // Aggiorna l'angolo di rotazione
-  angle += 0.003;
+  // Gestione animazione del centroide
+  if (centroidAnimation.isAnimating) {
+    let elapsed = millis() - animationStartTime;
+    centroidAnimation.progress = elapsed / centroidAnimation.duration;
+    
+    if (centroidAnimation.progress >= 1) {
+      centroidAnimation.progress = 1;
+      centroidAnimation.isAnimating = false;
+    }
+    
+    let easedProgress = easeInOutCubic(centroidAnimation.progress);
+    offsetZ = lerp(centroidAnimation.startZ, centroidAnimation.targetZ, easedProgress);
+  }
 
-  // Interpola la posizione corrente verso il target
+  // Interpola le posizioni correnti verso i target
   currentX = lerp(currentX, targetX, lerpFactor);
   currentY = lerp(currentY, targetY, lerpFactor);
 
-  // Calcola la posizione della camera con rotazione attorno al centro
-const radius = zoom;
-const camX = centroid.x + radius * cos(angle);
-const camZ = centroid.z + radius * sin(angle);
-const camY = centroid.y + currentY;
-
-camera.setPosition(camX, camY, camZ);
-camera.lookAt(centroid.x, centroid.y + currentY, centroid.z);
-
-
+  // Modifica il calcolo della posizione della camera per una vista statica
+  const radius = zoom;
+  const camX = centroid.x + currentX;
+  const camZ = centroid.z - radius; // Vista frontale fissa
+  const camY = centroid.y + currentY;
+  
+  camera.setPosition(camX, camY, camZ);
+  camera.lookAt(
+    centroid.x + currentX, 
+    centroid.y + currentY, 
+    centroid.z
+  );
+  
   if (!data || !atlasImg) return;
 
   // Verifica che la texture sia caricata correttamente
@@ -185,6 +292,9 @@ camera.lookAt(centroid.x, centroid.y + currentY, centroid.z);
         y: item.y
     });
   }
+if (isGridTimeView) {
+  drawGridAxes();
+}
 
   // Aggiungi questa parte per l'hover
   const label = document.getElementById('hoverLabel');
@@ -215,6 +325,13 @@ camera.lookAt(centroid.x, centroid.y + currentY, centroid.z);
     Y: ${nf(centroid.y, 0, 2)}
     Z: ${nf(centroid.z, 0, 2)}`, 10, 10);
   pop();
+}
+
+// Aggiungi questa funzione per l'interpolazione con easing
+function easeInOutCubic(t) {
+    return t < 0.5 
+        ? 4 * t * t * t 
+        : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
 function billboard(x, y, z) {
@@ -362,10 +479,6 @@ function toggleAutoCycle() {
     isAutoCycling = !isAutoCycling;
 }
 
-function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
-}
-
 // Aggiungi questa funzione dopo la funzione billboard()
 function screenPosition(x, y, z) {
   // Creiamo un vettore con le coordinate 3D
@@ -400,7 +513,8 @@ function screenXYZ(pos, projection) {
 }
 
 function mousePressed() {
-  if (mouseButton === LEFT) {
+  // Verifica che il mouse sia sul canvas
+  if (mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height) {
     isDragging = true;
     dragStartX = mouseX;
     dragStartY = mouseY;
@@ -415,14 +529,31 @@ function mouseReleased() {
 
 function mouseDragged() {
   if (isDragging) {
+    const dx = mouseX - dragStartX;
     const dy = mouseY - dragStartY;
     const moveScale = map(zoom, minZoom, maxZoom, 1, 4);
-    targetY = dragStartCameraY - dy * moveScale;
+    
+    // Calcola gli offset massimi basati sullo zoom
+    const maxOffset = zoom * 0.5;
+    
+    // Aggiorna sia la posizione verticale che laterale
+    targetY = constrain(
+      dragStartCameraY - dy * moveScale,
+      -maxOffset,
+      maxOffset
+    );
+    
+    targetX = constrain(
+      dragStartCameraX + dx * moveScale,
+      -maxOffset,
+      maxOffset
+    );
+    
     return false;
   }
 }
 
-// Modifica anche la funzione mouseWheel per mantenere solo il movimento verticale
+// Modifica anche la funzione mouseWheel per zoomare verso il centroide
 function mouseWheel(event) {
   event.preventDefault();
   
@@ -432,17 +563,13 @@ function mouseWheel(event) {
   // Applica lo zoom con smorzamento
   zoom = constrain(zoom * (1 + zoomAmount), minZoom, maxZoom);
   
-  // Calcola il rapporto di zoom per mantenere la posizione relativa
+  // Mantieni la proporzione dell'offset verticale durante lo zoom
   const zoomRatio = zoom / oldZoom;
-  
-  // Aggiorna la posizione Y mantenendo la proporzione
-  targetY *= zoomRatio;
   currentY *= zoomRatio;
+  targetY *= zoomRatio;
   
   return false;
 }
-
-// Rimuovi le costanti per le dimensioni fisse
 // const minPlaneSize = 30;
 // const maxPlaneSize = 100;
 
@@ -450,11 +577,9 @@ function mouseWheel(event) {
 function calculatePlaneSize(item, isSelected) {
   // Ottieni le dimensioni originali dell'immagine
   const aspectRatio = item.width / item.height;
-  
   // Dimensione massima consentita
   const MAX_SIZE = 64;
   const MIN_SIZE = 32;
-  
   // Dimensione base in base alla selezione
   const baseSize = isSelected ? MAX_SIZE : MIN_SIZE;
   
@@ -473,7 +598,7 @@ function calculatePlaneSize(item, isSelected) {
   return { width, height };
 }
 
-// Aggiungi questa funzione per disegnare il centroide
+// Disegna il centroide
 function drawCentroid() {
   push();
   translate(centroid.x + offsetX, centroid.y + offsetY, centroid.z + offsetZ);
@@ -494,9 +619,107 @@ function drawCentroid() {
   pop();
 }
 
-// Aggiungi un toggle per il centroide con il tasto 'c'
+// Toggle per il centroide con il tasto 'c'
 function keyPressed() {
   if (key === 'c' || key === 'C') {
     showCentroid = !showCentroid;
   }
+}
+
+// Modifica la funzione di caricamento per gestire entrambi i JSON
+function loadData(isTimeView) {
+    isDateTimeView = isTimeView;
+    const jsonPath = isTimeView ? 
+        'data_date_time_without_position.json' : 
+        'COSE/image_mapping_with_atlas_deduplicated.json';
+
+    return fetch(jsonPath)
+        .then(response => response.json())
+        .then(json => {
+            if (isTimeView) {
+                timeData = json;
+                // Riorganizza i dati per la visualizzazione temporale
+                data = organizeDataByTime(timeData);
+            } else {
+                data = json.mapping;
+            }
+            computeCenter();
+            allClasses = isTimeView ? 
+                getTimeCategories() : 
+                [...new Set(data.map(item => item.class))];
+            populateClassSelector();
+        })
+        .catch(error => {
+            console.error('Errore caricamento JSON:', error);
+        });
+}
+
+// Aggiungi questa funzione per organizzare i dati per tempo
+function organizeDataByTime(timeData) {
+    return timeData.map(item => ({
+        ...item,
+        position: calculateTimePosition(item.time),
+        class: getTimeCategory(item.time)
+    }));
+}
+
+// Funzione per calcolare la posizione basata sul tempo
+function calculateTimePosition(timeString) {
+    if (!timeString) return [0, 0, 0];
+    
+    const [hours, minutes] = timeString.split(':').map(Number);
+    
+    // Converti il tempo in coordinate 3D
+    const angle = (hours + minutes/60) * (Math.PI * 2 / 24); // Converte l'ora in radianti
+    const radius = 1000; // Raggio del cerchio
+    
+    return [
+        Math.cos(angle) * radius,      // X
+        Math.sin(angle) * radius,      // Y
+        0                              // Z
+    ];
+}
+
+// Funzione per categorizzare il tempo
+function getTimeCategory(timeString) {
+    if (!timeString) return 'unknown';
+    
+    const hour = parseInt(timeString.split(':')[0]);
+    if (hour >= 5 && hour < 12) return 'mattina';
+    if (hour >= 12 && hour < 17) return 'pomeriggio';
+    if (hour >= 17 && hour < 22) return 'sera';
+    return 'notte';
+}
+
+// Funzione per ottenere le categorie temporali
+function getTimeCategories() {
+    return ['mattina', 'pomeriggio', 'sera', 'notte'];
+}
+
+// Modifica la funzione del click del bottone Date time
+function toggleDateTimeView() {
+    const button = document.getElementById('view3DButton');
+    isDateTimeView = !isDateTimeView;
+    
+    button.style.animation = 'blink 1s infinite';
+    button.textContent = 'caricamento...';
+    
+    loadData(isDateTimeView)
+        .then(() => {
+            button.style.animation = 'none';
+            button.textContent = isDateTimeView ? 'vista normale' : 'Date time';
+            // Resetta la camera e gli offset
+            resetView();
+        });
+}
+
+// Aggiungi questa funzione per resettare la vista
+function resetView() {
+    camera.setPosition(0, 0, 8000);
+    offsetZ = -1200;
+    zoom = 8000;
+    currentX = 0;
+    currentY = 0;
+    targetX = 0;
+    targetY = 0;
 }
