@@ -147,22 +147,34 @@ function setup() {
   });
 }
 
-// Modifica la funzione togglePlay per usare il bottone Avvia
+// Modifica la funzione togglePlay
 function togglePlay() {
     playing = !playing;
-    filtroTemporaleAttivo = playing; // Attiva il filtro quando parte l'animazione
+    filtroTemporaleAttivo = playing; 
     const avviaButton = document.querySelector('#avviaButton');
     
     if (playing) {
+        // Inizia l'animazione
         intervalloAnimazione = setInterval(() => {
             oraCorrente = (oraCorrente + 1) % 24;
             slider.value(oraCorrente);
             updateOraDisplay();
-        }, 500);
-        if (avviaButton) avviaButton.textContent = "Pausa";
+        }, 1000); // Un secondo tra ogni cambio ora
+        
+        // Aggiorna il bottone
+        if (avviaButton) {
+            avviaButton.textContent = "Pausa";
+            avviaButton.classList.add('active');
+        }
     } else {
+        // Ferma l'animazione
         clearInterval(intervalloAnimazione);
-        if (avviaButton) avviaButton.textContent = "Avvia";
+        
+        // Aggiorna il bottone
+        if (avviaButton) {
+            avviaButton.textContent = "Avvia";
+            avviaButton.classList.remove('active');
+        }
     }
 }
 
