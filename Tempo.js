@@ -39,7 +39,7 @@ function setup() {
     anni.add(dateObj.getFullYear());
 
     const pathJPG = `assets/images.copia/${baseName}.jpg`;
-    const pathJPEG = `crops_64/${baseName}.jpeg`;
+    const pathJPEG = `assets/images.copia/${baseName}.jpeg`;
 
     function caricaImmagine(path, fallbackPath) {
       loadImage(path, img => {
