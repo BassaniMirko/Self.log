@@ -45,29 +45,30 @@
             background: rgba(0, 0, 0, 0.0);
             border-radius: 4px;
             display: flex;
-            align-items: flex-orizontal;
-            gap: 5px;
-            height: auto;          /* Altezza automatica */
-            overflow: visible;     /* Mostra tutto il contenuto */
+            flex-direction: column;
+            gap: 10px;
+            height: auto;
+            overflow: visible;
+            width: 100%;      /* Usa tutta la larghezza disponibile */
+            box-sizing: border-box; /* Include padding nel calcolo della width */
         }
 
         .filter-controls {
             display: flex;
-            
-            gap: 5px; /* Spazio tra i bottoni */
+            flex-wrap: wrap;   /* Permette il wrapping dei bottoni */
+            gap: 5px;
+            margin: 5px 0;
         }
 
         #classSelector {
-            background: transparent;
-            border: none;
-            font-family: "SFMono-Regular", Consolas, monospace;
-            font-size: 12px;
-            color: #aaaaaa;
-            padding: 0;
-            margin: 0;
-            width: 80px;
-            height: auto;
-            overflow: visible;
+            margin-top: 0px;
+            max-height: 800px;
+            max-width: 600px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* 6 colonne */
+            gap: 5px;          /* Spazio tra i bottoni */
+            padding: 5px;      /* Padding interno */
         }
 
         #classSelector option {
@@ -177,6 +178,64 @@
             width: 70%;
             height: 100%;
         }
+
+        #spatialViewButton, #timeViewButton {
+            transition: all 0.2s ease;
+        }
+
+        #spatialViewButton:hover, #timeViewButton:hover {
+            background: #333 !important;
+            color: #fff !important;
+        }
+
+        #spatialViewButton.active, #timeViewButton.active {
+            background: #fff !important;
+            color: #000 !important;
+        }
+
+        .view-button {
+            background: transparent;
+            color: #ddd;
+            border: 1px solid #333;
+            padding: 4px 8px;  /* Aumentato il padding */
+            margin: 2px;       /* Aggiunto margine */
+            font-family: monospace;
+            font-size: 12px;
+            cursor: pointer;
+            min-width: 80px;   /* Larghezza minima */
+            text-align: center; /* Allineamento testo */
+        }
+
+        .class-button {
+            background: transparent;
+            color: #ddd;
+            border: 1px solid #333;
+            padding: 0px 2px;  /* Aumentato il padding */
+            margin: 0;
+            font-family: monospace;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap; /* Evita il wrapping del testo */
+            overflow: hidden;    /* Nasconde il testo in eccesso */
+            text-overflow: ellipsis; /* Mostra ... se il testo è troppo lungo */
+            min-width: 60px;    /* Larghezza minima */
+            text-align: center; /* Allineamento testo */
+        }
+
+        /* Etichetta hover */
+        #hoverLabel {
+            position: absolute;
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 0px;
+            border-radius: 0px;
+            pointer-events: none;
+            display: none;
+            z-index: 999;
+            font-size: 12px;
+            font-family: monospace;
+        }
     </style>
 </head>
 <body>
@@ -192,7 +251,38 @@
         <!-- Modifica la struttura del div filter -->
         <div id="filter" class="system">
             <div>
-                <div style="display: flex; align-items: center; gap: 10px;">
+                <!-- Aggiungi questa nuova sezione per i bottoni di visualizzazione -->
+                <div style="margin-bottom: 15px;">
+                    <p style="margin:0 0 5px 0; color:#ffffff">Tipo di visualizzazione:</p>
+                    <div style="display: flex; gap: 0px;">
+                        <button id="spatialViewButton" 
+                                onclick="switchToSpatialView()" 
+                                style="
+                                    background: #fff;
+                                    color: #000;
+                                    border: none;
+                                    padding: 1px 2px;
+                                    font-family: 'SFMono-Regular', Consolas, monospace;
+                                    font-size: 12px;
+                                    cursor: pointer;">
+                            Spaziale
+                        </button>
+                        <button id="timeViewButton" 
+                                onclick="window.location.href='Tempo.html'" 
+                                style="
+                                    background: transparent;
+                                    color: #ddd;
+                                    border: none;
+                                    padding: 1px 2px;
+                                    font-family: 'SFMono-Regular', Consolas, monospace;
+                                    font-size: 12px;
+                                    cursor: pointer;">
+                            Temporale
+                        </button>
+                    </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 0px;">
                     <p style="margin:0px; color:#ffffff">Filtra per categoria:</p>
                     <div class="filter-controls" style="margin: 0;">
                         <button id="cycleButton" onclick="toggleAutoCycle()">avvia</button>
@@ -203,41 +293,11 @@
                 </div>
                 
                 <!-- Modifica la sezione dei bottoni -->
-                <div style="
-                    display: flex;
-                    align-items: center;
-                    gap: 15px;
-                    margin-top: 15px;">
-                    
-                    <button id="view3DButton" 
-                            onclick="toggleDateTimeView()" 
-                            style="
-                                background: transparent;
-                                color: #ddd;
-                                border: none;
-                                padding: 0;
-                                font-family: 'SFMono-Regular', Consolas, monospace;
-                                font-size: 12px;
-                                cursor: pointer;">
-                        Date time
-                    </button>
-
-                    <button id="startVisualization" 
-                            onclick="startVisualization()" 
-                            style="
-                                background: transparent;
-                                color: #ddd;
-                                border: none;
-                                padding: 0;
-                                font-family: 'SFMono-Regular', Consolas, monospace;
-                                font-size: 12px;
-                                cursor: pointer;">
-                        
-                        <button id="gridTimeButton" onclick="toggleGridTimeView()">Griglia temporale</button>
-                    </button>
-                </div>
+        
             </div>
         </div>
+
+        
     </div>
 
     <!-- Etichetta hover -->
@@ -245,12 +305,12 @@
         position: absolute;
         color: white;
         background: rgba(0,0,0,0.7);
-        padding: 8px;
-        border-radius: 4px;
+        padding: 0px;
+        border-radius: 0px;
         pointer-events: none;
         display: none;
         z-index: 999;
-        font-size: 13px;
+        font-size: 12px;
         font-family: monospace;
     "></div>
     <div id="canvasContainer" style="position: absolute; right: 0; top: 0; width: 100%; height: 100%;">
@@ -286,49 +346,105 @@
         document.body.appendChild(script);
     }
 
-    function startVisualization() {
-        const button = document.getElementById('startVisualization');
-        button.style.animation = 'blink 2s infinite';
-        button.textContent = 'caricamento...';
+    let currentView = 'spatial';
+    let spatialData = null;
+    let temporalData = null;
+
+    function switchToSpatialView() {
+        if (currentView === 'spatial') return;
         
-        // Rimuovi gli script esistenti
-        const oldScripts = document.querySelectorAll('script[src="sketch2.js"], script[src="prova.js"]');
-        oldScripts.forEach(script => script.remove());
+        const spatialBtn = document.getElementById('spatialViewButton');
+        const timeBtn = document.getElementById('timeViewButton');
         
-        // Pulisci il container
-        const container = document.getElementById('canvasContainer');
-        container.innerHTML = '';
+        // Aggiorna stili bottoni
+        spatialBtn.style.background = '#fff';
+        spatialBtn.style.color = '#000';
+        timeBtn.style.background = 'transparent';
+        timeBtn.style.color = '#ddd';
         
-        // Carica l'atlas prima di prova.js
-        const atlasPromise = new Promise((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => resolve(img);
-            img.onerror = reject;
-            img.src = 'atlas_originali.jpg';
-        });
-        
-        atlasPromise.then(() => {
-            // Carica prova.js dopo che l'atlas è stato caricato
-            const script = document.createElement('script');
-            script.src = 'prova.js';
-            script.onload = () => {
-                button.textContent = 'visualizzazione avviata';
-                console.log('Visualizzazione date/time avviata');
-            };
-            script.onerror = (e) => {
-                button.style.animation = 'none';
-                button.textContent = 'errore';
-                button.style.color = '#ff0000';
-                console.error('Errore nel caricamento di prova.js:', e);
-            };
-            document.body.appendChild(script);
-        }).catch(error => {
-            console.error('Errore nel caricamento dell\'atlas:', error);
-            button.style.animation = 'none';
-            button.textContent = 'errore atlas';
-            button.style.color = '#ff0000';
-        });
+        // Cambia la visualizzazione
+        currentView = 'spatial';
+        setupSpatialView();
     }
+
+    function switchToTimeView() {
+        if (currentView === 'temporal') return;
+        
+        const spatialBtn = document.getElementById('spatialViewButton');
+        const timeBtn = document.getElementById('timeViewButton');
+        
+        // Aggiorna stili bottoni
+        timeBtn.style.background = '#fff';
+        timeBtn.style.color = '#000';
+        spatialBtn.style.background = 'transparent';
+        spatialBtn.style.color = '#ddd';
+        
+        // Cambia la visualizzazione
+        currentView = 'temporal';
+        setupTemporalView();
+    }
+
+   
+
+    function setupTemporalView() {
+        // Carica i dati temporali se non sono già caricati
+        if (!temporalData) {
+            fetch('data_date_time_without_position.json')
+                .then(response => response.json())
+                .then(data => {
+                    temporalData = data;
+                    updateVisualization();
+                });
+        } else {
+            updateVisualization();
+        }
+    }
+
+    function updateVisualization() {
+        const selector = document.getElementById('classSelector');
+        selector.innerHTML = '';
+        
+        if (currentView === 'spatial') {
+            // Visualizzazione spaziale: mostra le categorie
+            const categories = [...new Set(spatialData.mapping.map(item => item.class))];
+            categories.forEach(category => {
+                const btn = document.createElement('button');
+                btn.textContent = category;
+                btn.className = 'class-button';
+                btn.onclick = () => filterByCategory(category);
+                selector.appendChild(btn);
+            });
+        } else {
+            // Visualizzazione temporale: mostra le ore
+            const grid = document.createElement('div');
+            grid.style.cssText = `
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 5px;
+                padding: 5px;
+            `;
+            
+            for (let i = 0; i < 24; i++) {
+                const btn = document.createElement('button');
+                btn.textContent = `${i.toString().padStart(2, '0')}:00`;
+                btn.className = 'class-button';
+                btn.onclick = () => filterByHour(i);
+                grid.appendChild(btn);
+            }
+            
+            selector.appendChild(grid);
+        }
+
+        // Aggiorna la visualizzazione nel canvas
+        if (window.draw) {
+            window.draw();
+        }
+    }
+
+    // Inizializza la visualizzazione spaziale all'avvio
+    document.addEventListener('DOMContentLoaded', () => {
+        setupSpatialView();
+    });
     </script>
 </body>
 </html>

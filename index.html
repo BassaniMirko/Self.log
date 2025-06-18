@@ -170,23 +170,10 @@
     <div class="output">✓ Modules attached</div>
     <div class="system">==&gt; Starting system...</div>
     <br>
-    <div class="prompt"><span class="blinker"></span></div>
+    
 
     <!-- Galleria con filtri -->
-    <div id="galleria">
-        <h1>GALLERIA</h1>
-        <div id="filter" class="system">
-            <p>Filtra per categoria:</p>
-            <select id="classSelector" multiple>
-                <!-- Le categorie verranno popolate da sketch2.js -->
-            </select>
-            <div class="filter-controls">
-                <button id="cycleButton" class="command">Avvia Ciclo</button>
-                <button id="resetButton" class="command">Reset Filtri</button>
-            </div>
-        </div>
-        <!-- Contenuto dinamico della galleria -->
-    </div>
+   
   </div> <!-- Chiusura del container -->
 
     <!-- 3D Viewer -->
@@ -194,25 +181,7 @@
       <canvas id="canvas3d" width="800" height="600"></canvas>
     </div>
 
-    <!-- Etichetta hover (per sketch2.js) -->
-    <div id="hoverLabel" style="
-      position: absolute;
-      color: white;
-      background: rgba(0,0,0,0.7);
-      padding: 8px;
-      border-radius: 4px;
-      pointer-events: none;
-      display: none;
-      z-index: 999;
-      font-size: 13px;
-      font-family: monospace;
-    "></div>
- <div id="filter">
-    <label>Filtra per classe:</label>
-    <select id="classSelector" multiple>
-    </select>
-    <button id="cycleButton" onclick="toggleAutoCycle()">Avvia Ciclo</button>
-  </div>
+   
   <!-- Importmap deve essere definito prima degli script che lo utilizzano -->
   <script type="importmap">
 {
@@ -227,7 +196,6 @@
 
   <!-- Script di utilità -->
   <script type="module" src="loading.js"></script>
-  <script type="module" src="prova.js"></script>
   <script type="module" src="sketch2.js"></script>
 
   <!-- Script Three.js -->
