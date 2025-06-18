@@ -70,7 +70,7 @@
       top: 20px;
       left: 20px;
       z-index: 3;
-      width: 20vw; /* 1/5 della larghezza viewport */
+      width: 350px; /* 1/5 della larghezza viewport */
       margin: 0;
       overflow-x: hidden; /* previene lo scroll orizzontale */
       position: relative;
@@ -209,7 +209,7 @@
     scene.background = new THREE.Color(0x000000);
 
     const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 0, 10); // Aumenta la distanza per vedere meglio il modello
+    camera.position.set(0, 4, 6); // Aumenta la distanza per vedere meglio il modello
 
     // Modifica l'inizializzazione del renderer
     const container = document.querySelector('#visualizzazione3D');

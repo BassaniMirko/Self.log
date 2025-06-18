@@ -66,9 +66,9 @@
             max-width: 600px;
             overflow-y: auto;
             display: grid;
-            grid-template-columns: repeat(3, 1fr); /* 6 colonne */
+            grid-template-columns: repeat(0, 1fr); /* 6 colonne */
             gap: 5px;          /* Spazio tra i bottoni */
-            padding: 5px;      /* Padding interno */
+            padding-top: 5px;      /* Padding interno */
         }
 
         #classSelector option {
@@ -80,7 +80,7 @@
 
         .option {
             opacity: 0;
-            padding: 2px 0;
+            padding: 0px 0;
             cursor: pointer;
             white-space: nowrap;
         }
@@ -102,7 +102,7 @@
 
         .option:hover {
             color: #fff;
-            background: rgba(255, 255, 255, 0.1);
+            /*background: rgba(255, 255, 255, 0.1);*/
         }
 
         .option.selected {
@@ -252,8 +252,8 @@
         <div id="filter" class="system">
             <div>
                 <!-- Aggiungi questa nuova sezione per i bottoni di visualizzazione -->
-                <div style="margin-bottom: 15px;">
-                    <p style="margin:0 0 5px 0; color:#ffffff">Tipo di visualizzazione:</p>
+                <div style="margin-bottom: 15px; display: flex; align-items: center;">
+                    <p style="margin:0; color:#ffffff; margin-right: 0px;">Tipo di visualizzazione:</p>
                     <div style="display: flex; gap: 0px;">
                         <button id="spatialViewButton" 
                                 onclick="switchToSpatialView()" 
@@ -386,65 +386,8 @@
 
    
 
-    function setupTemporalView() {
-        // Carica i dati temporali se non sono già caricati
-        if (!temporalData) {
-            fetch('data_date_time_without_position.json')
-                .then(response => response.json())
-                .then(data => {
-                    temporalData = data;
-                    updateVisualization();
-                });
-        } else {
-            updateVisualization();
-        }
-    }
-
-    function updateVisualization() {
-        const selector = document.getElementById('classSelector');
-        selector.innerHTML = '';
-        
-        if (currentView === 'spatial') {
-            // Visualizzazione spaziale: mostra le categorie
-            const categories = [...new Set(spatialData.mapping.map(item => item.class))];
-            categories.forEach(category => {
-                const btn = document.createElement('button');
-                btn.textContent = category;
-                btn.className = 'class-button';
-                btn.onclick = () => filterByCategory(category);
-                selector.appendChild(btn);
-            });
-        } else {
-            // Visualizzazione temporale: mostra le ore
-            const grid = document.createElement('div');
-            grid.style.cssText = `
-                display: grid;
-                grid-template-columns: repeat(3, 1fr);
-                gap: 5px;
-                padding: 5px;
-            `;
-            
-            for (let i = 0; i < 24; i++) {
-                const btn = document.createElement('button');
-                btn.textContent = `${i.toString().padStart(2, '0')}:00`;
-                btn.className = 'class-button';
-                btn.onclick = () => filterByHour(i);
-                grid.appendChild(btn);
-            }
-            
-            selector.appendChild(grid);
-        }
-
-        // Aggiorna la visualizzazione nel canvas
-        if (window.draw) {
-            window.draw();
-        }
-    }
-
-    // Inizializza la visualizzazione spaziale all'avvio
-    document.addEventListener('DOMContentLoaded', () => {
-        setupSpatialView();
-    });
+   
+    
     </script>
 </body>
 </html>

@@ -34,7 +34,14 @@ function preload() {
 function setup() {
   createCanvas(windowWidth, windowHeight, WEBGL);
   camera = createCamera();
-  camera.setPosition(0, 0, 800);
+  
+  // Modifica più estrema della posizione della camera
+  camera.setPosition(0, -800, 800); // Aumentato i valori per una vista più alta e inclinata
+  camera.lookAt(0, 0, 0);
+  
+  // Aggiungi questa riga per inclinare ulteriormente la camera
+  camera.tilt(PI * 0.25);
+  
   startTime = millis();
 }
 
@@ -55,23 +62,23 @@ function draw() {
   
   // Animazione con forme multiple
   push();
-  translate(width/2, height/2, 0);
+  translate(width/2, height/2, -200); // Aggiunto offset negativo su Z per abbassare il modello
+  
+  // Modifica le rotazioni per una vista più inclinata
+  rotateX(PI * 0.35); // Aumentato l'angolo di inclinazione
   rotateY(modelRotation);
-  stroke(255);
-  noFill();
+  rotateZ(0);
   
-  // Sfera centrale
-  sphere(50);
-  
-  // Anelli orbitali
-  rotateX(modelRotation * 0.5);
-  torus(70, 2);
-  rotateX(modelRotation * -1);
-  torus(90, 2);
+  if (isModelLoaded && objModel) {
+    scale(2.5); // Aumentato leggermente la scala
+    translate(0, 50, 0); // Sposta leggermente il modello verso il basso
+    model(objModel);
+  }
   
   pop();
   
-  modelRotation += 0.02;
+  // Rallenta ulteriormente la rotazione
+  modelRotation += 0.005; // Ridotto da 0.01 a 0.005
   
   // Reindirizzamento automatico
   if (loadingProgress >= 100) {
