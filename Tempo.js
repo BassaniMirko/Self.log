@@ -38,8 +38,8 @@ function setup() {
     const dateObj = new Date(item.date);
     anni.add(dateObj.getFullYear());
 
-    const pathJPG = `assets/images.copia/${baseName}.jpg`;
-    const pathJPEG = `assets/images.copia/${baseName}.jpeg`;
+    const pathJPG = `assets/images_copia/${baseName}.jpg`;
+    const pathJPEG = `assets/images_copia/${baseName}.jpeg`;
 
     function caricaImmagine(path, fallbackPath) {
       loadImage(path, img => {
