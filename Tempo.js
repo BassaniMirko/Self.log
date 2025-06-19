@@ -1,3 +1,4 @@
+// === Variabili globali ===
 let data;
 let immagini = [];
 
@@ -6,20 +7,27 @@ let dragX = 0;
 let dragY = 0;
 
 let oraCorrente = 0;
+let meseCorrente = 0;
+let giornoCorrente = 0;
+let annoCorrente = 0;
 let playing = false;
 let intervalloAnimazione;
 let rotY = 0;
 let cella = 100;
 
 const MESI = 12;
-const GIORNI = 31; // Modificato da 7 a 31 per mostrare tutti i giorni del mese
+const GIORNI = 31;
 let ANNI;
 
-let slider, oraDisplay; // rimosso playButton
-let mostraTutto = false; // Aggiungi questa variabile all'inizio del file con le altre variabili globali
-
-// Aggiungi una variabile per tracciare se il filtro temporale è attivo
+let slider, oraDisplay;
+let mostraTutto = false;
 let filtroTemporaleAttivo = false;
+
+let filtriMese = Array(12).fill(true);
+let filtriGiornoSettimana = Array(7).fill(true);
+let filtriAnno = {};
+
+let categoriaAttiva = 'ore';
 
 function preload() {
   data = loadJSON('data_date_time.json');
@@ -31,7 +39,6 @@ function setup() {
   noStroke();
 
   const anni = new Set();
-
   Object.keys(data).forEach(k => {
     const item = data[k];
     const baseName = item.filename.replace(/^.*[\\\/]/, '').replace(/\.(jpg|jpeg)$/i, '');
@@ -43,150 +50,198 @@ function setup() {
 
     function caricaImmagine(path, fallbackPath) {
       loadImage(path, img => {
-        const i = new ImmagineSingola(
-          `${baseName}.jpg`,
-          img,
-          img.width,
-          img.height,
-          item.date,
-          item.time,
-          getMese(item.date),
-          getGiorno(item.date),
-          getAnno(item.date)
-        );
-        immagini.push(i);
+        immagini.push(new ImmagineSingola(
+          `${baseName}.jpg`, img, img.width, img.height, item.date,
+          item.time, getMese(item.date), getGiorno(item.date), getAnno(item.date)
+        ));
       }, () => {
-        if (fallbackPath) {
-          caricaImmagine(fallbackPath, null);
-        } else {
-          console.error("Immagine non trovata:", path);
-        }
+        if (fallbackPath) caricaImmagine(fallbackPath, null);
+        else console.error("Immagine non trovata:", path);
       });
     }
-
     caricaImmagine(pathJPG, pathJPEG);
   });
 
   ANNI = anni.size;
+  anni.forEach(a => filtriAnno[a] = true);
 
   document.body.style.cursor = 'grab';
 
-  // Modifica lo stile dei controlli
-  const controlsStyle = `
-      position: fixed;
-      top: 250px;
-      left: 170px;
-      transform: translateX(-50%);
-      width: calc(100% - 10px);
-      max-width: 300px;
-      
-      padding: 1px;
-      border-radius: 4px;
-      backdrop-filter: blur(8px);
-      z-index: 1000;
-      margin-top: 5px;
-  `;
+  const controls = createDiv('').parent('filter');
+  slider = createSlider(0, 23, 0, 1).style('width', '100%').parent(controls);
+  oraDisplay = createDiv('').style('color', '#fff').parent(controls);
 
-  // Aggiorna il container dei controlli
-  const controls = createDiv('');
-  controls.style(controlsStyle);
-  controls.parent('filter'); // Aggiungi i controlli al div filter
+  const avviaButton = document.querySelector('#avviaButton');
+  if (avviaButton) avviaButton.addEventListener('click', () => {
+    playing = !playing;
+    if (playing) {
+      clearInterval(intervalloAnimazione);
+      let maxVal = 23;
+      let updateFn = () => { oraCorrente = step; slider.value(step); updateOraDisplay(); };
 
-  // Stile per lo slider
-  slider = createSlider(0, 23, 0, 1);
-  slider.style('width', '100%');
-  slider.style('margin', '5px 0');
-  slider.style('-webkit-appearance', 'none');
-  slider.style('background', 'rgba(255,255,255,0.1)');
-  slider.style('height', '2px');
-  slider.style('outline', 'none');
-  slider.parent(controls);
-  
-  // Stile per il display dell'ora
-  oraDisplay = createDiv('');
-  oraDisplay.style('color', '#ffffff');
-  oraDisplay.style('font-family', 'monospace');
-  oraDisplay.style('font-size', '12px');
-  oraDisplay.style('text-align', 'left');
-  oraDisplay.style('margin', '5px 0');
-  oraDisplay.style('display', 'flex');
-  oraDisplay.style('justify-content', 'space-between');
-  oraDisplay.parent(controls);
-
-  // Aggiungi l'event listener al bottone Avvia esistente
-  const avviaButton = document.querySelector('#avviaButton'); // assumi che il bottone abbia questo id
-  if (avviaButton) {
-      avviaButton.addEventListener('click', togglePlay);
-  }
-
-  // Personalizza lo stile dello slider
-  const sliderStyles = `
-      input[type=range]::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          width: 12px;
-          height: 12px;
-          border-radius: 50%;
-          background: white;
-          cursor: pointer;
-          transition: all 0.15s ease-in-out;
+      if (categoriaAttiva === 'mesi') {
+        maxVal = 11;
+        updateFn = () => { meseCorrente = step; oraDisplay.html(`mese: ${meseCorrente}`); };
+      } else if (categoriaAttiva === 'giorni') {
+        maxVal = 6;
+        updateFn = () => { giornoCorrente = step; oraDisplay.html(`giorno: ${giornoCorrente}`); };
+      } else if (categoriaAttiva === 'anni') {
+        maxVal = Object.keys(filtriAnno).length - 1;
+        const anniArray = Object.keys(filtriAnno);
+        updateFn = () => { annoCorrente = anniArray[step]; oraDisplay.html(`anno: ${annoCorrente}`); };
       }
-      input[type=range]::-webkit-slider-thumb:hover {
-          transform: scale(1.2);
-      }
-  `;
 
-  const styleSheet = document.createElement('style');
-  styleSheet.textContent = sliderStyles;
-  document.head.appendChild(styleSheet);
+      let step = 0;
+      intervalloAnimazione = setInterval(() => {
+        updateFn();
+        step = (step + 1) % (maxVal + 1);
+      }, 1000);
+    } else {
+      clearInterval(intervalloAnimazione);
+    }
+  });
 
-  // Aggiorna anche l'event listener dello slider
   slider.input(() => {
-    filtroTemporaleAttivo = true; // Attiva il filtro quando si usa lo slider
+    filtroTemporaleAttivo = true;
     oraCorrente = parseInt(slider.value());
     updateOraDisplay();
   });
+
+  const filtroWrapper = createDiv('').parent('filter').style('display', 'flex').style('flex-direction', 'column');
+
+  // [anni]
+  const labelAnni = createDiv('[anni]').parent(filtroWrapper).style('color', '#fff').style('cursor', 'pointer');
+  labelAnni.mousePressed(() => categoriaAttiva = 'anni');
+  const rigaAnni = createDiv('').parent(filtroWrapper).style('display', 'flex').style('flex-wrap', 'wrap').style('flex-direction', 'row').style('gap', '0');
+  let index = 0;
+  Object.keys(filtriAnno).forEach((anno, i) => {
+    const btn = createDiv(anno);
+    btn.class('option');
+    btn.mousePressed(() => {
+      filtriAnno[anno] = !filtriAnno[anno];
+      btn.classList.toggle('selected');
+    });
+    setTimeout(() => {
+      rigaAnni.child(btn);
+      void btn.elt.offsetWidth;
+      btn.addClass('fade-in');
+    }, i * 100);
+  });
+
+  const filtroContainer = createDiv('').parent(filtroWrapper).style('display', 'flex').style('gap', '40px');
+
+  // [ore]
+  const labelOre = createDiv('[ore]').parent(filtroContainer).style('color', '#fff').style('cursor', 'pointer');
+  labelOre.mousePressed(() => categoriaAttiva = 'ore');
+  creaFiltroColonna(Array.from({length: 24}, (_, i) => i), filtroContainer, (val, btn) => {
+    filtroTemporaleAttivo = true;
+    oraCorrente = val;
+    slider.value(val);
+    updateOraDisplay();
+  }, 2);
+
+  // [mesi]
+  const labelMesi = createDiv('[mesi]').parent(filtroContainer).style('color', '#fff').style('cursor', 'pointer');
+  labelMesi.mousePressed(() => categoriaAttiva = 'mesi');
+  creaFiltroColonna([
+    "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+    "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
+  ], filtroContainer, (nome, btn) => {
+    const index = [
+      "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+      "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
+    ].indexOf(nome);
+    filtriMese[index] = !filtriMese[index];
+    btn.classList.toggle('selected');
+  }, 1);
+
+  // [giorni]
+  const labelGiorni = createDiv('[giorni]').parent(filtroContainer).style('color', '#fff').style('cursor', 'pointer');
+  labelGiorni.mousePressed(() => categoriaAttiva = 'giorni');
+  creaFiltroColonna([
+    "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"
+  ], filtroContainer, (nome, btn) => {
+    const index = [
+      "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"
+    ].indexOf(nome);
+    filtriGiornoSettimana[index] = !filtriGiornoSettimana[index];
+    btn.classList.toggle('selected');
+  }, 1);
 }
 
-// Modifica la funzione togglePlay
-function togglePlay() {
-    playing = !playing;
-    filtroTemporaleAttivo = playing; 
-    const avviaButton = document.querySelector('#avviaButton');
-    
-    if (playing) {
-        // Inizia l'animazione
-        intervalloAnimazione = setInterval(() => {
-            oraCorrente = (oraCorrente + 1) % 24;
-            slider.value(oraCorrente);
-            updateOraDisplay();
-        }, 1000); // Un secondo tra ogni cambio ora
-        
-        // Aggiorna il bottone
-        if (avviaButton) {
-            avviaButton.textContent = "Pausa";
-            avviaButton.classList.add('active');
-        }
-    } else {
-        // Ferma l'animazione
-        clearInterval(intervalloAnimazione);
-        
-        // Aggiorna il bottone
-        if (avviaButton) {
-            avviaButton.textContent = "Avvia";
-            avviaButton.classList.remove('active');
-        }
-    }
+function creaFiltroColonna(valori, container, onClickFn, colonne = 1) {
+  const itemsPerCol = Math.ceil(valori.length / colonne);
+  const cols = [];
+  for (let c = 0; c < colonne; c++) {
+    const col = createDiv('').style('display', 'flex').style('flex-direction', 'column').style('gap', '2px').parent(container);
+    cols.push(col);
+  }
+  valori.forEach((val, i) => {
+    const btn = createDiv(val.toString());
+    btn.class('option');
+    btn.mousePressed(() => onClickFn(val, btn));
+    setTimeout(() => {
+      cols[Math.floor(i / itemsPerCol)].child(btn);
+      void btn.elt.offsetWidth;
+      btn.addClass('fade-in');
+    }, i * 100);
+  });
 }
 
-// Aggiungi questa funzione per contare le immagini attive
-function contaImmaginiAttive(ora) {
-    return immagini.filter(img => img.ora === ora).length;
-}
-
-// Modifica la funzione updateOraDisplay
 function updateOraDisplay() {
-    const numeroImmagini = contaImmaginiAttive(oraCorrente);
-    oraDisplay.html(`${oraCorrente.toString().padStart(2, '0')}:00 | ${numeroImmagini} immagini`);
+  oraDisplay.html(`ora: ${oraCorrente}`);
+}
+
+
+function creaFiltroColonna(valori, container, onClickFn, colonne = 1) {
+  const itemsPerCol = Math.ceil(valori.length / colonne);
+  const cols = [];
+  for (let c = 0; c < colonne; c++) {
+    const col = createDiv('').style('display', 'flex').style('flex-direction', 'column').style('gap', '2px').parent(container);
+    cols.push(col);
+  }
+  valori.forEach((val, i) => {
+    const btn = createDiv(val.toString());
+    btn.class('option');
+    btn.mousePressed(() => onClickFn(val, btn));
+    setTimeout(() => {
+      cols[Math.floor(i / itemsPerCol)].child(btn);
+      void btn.elt.offsetWidth;
+      btn.addClass('fade-in');
+    }, i * 100);
+  });
+}
+
+function togglePlay() {
+  playing = !playing;
+  filtroTemporaleAttivo = playing;
+  const avviaButton = document.querySelector('#avviaButton');
+  if (playing) {
+    intervalloAnimazione = setInterval(() => {
+      oraCorrente = (oraCorrente + 1) % 24;
+      slider.value(oraCorrente);
+      updateOraDisplay();
+    }, 1000);
+    if (avviaButton) {
+      avviaButton.textContent = "Pausa";
+      avviaButton.classList.add('active');
+    }
+  } else {
+    clearInterval(intervalloAnimazione);
+    if (avviaButton) {
+      avviaButton.textContent = "Avvia";
+      avviaButton.classList.remove('active');
+    }
+  }
+}
+
+function contaImmaginiAttive(ora) {
+  return immagini.filter(img => img.ora === ora).length;
+}
+
+function updateOraDisplay() {
+  const numeroImmagini = contaImmaginiAttive(oraCorrente);
+  oraDisplay.html(`${oraCorrente.toString().padStart(2, '0')}:00 | ${numeroImmagini} immagini`);
 }
 
 function draw() {
@@ -198,11 +253,11 @@ function draw() {
   rotateY(rotY);
 
   const cellaX = cella;
-  const cellaY = cella * 0.5; // Riduci la spaziatura verticale per accomodare più giorni
+  const cellaY = cella * 0.5;
   const cellaZ = cella;
 
   const offsX = -MESI * cellaX / 2;
-  const offsY = -GIORNI * cellaY / 2; // Usa il nuovo valore GIORNI
+  const offsY = -GIORNI * cellaY / 2;
   const offsZ = -ANNI * cellaZ / 2;
 
   immagini.forEach(img => {
@@ -230,17 +285,8 @@ function mouseDragged() {
 }
 
 function mouseWheel(event) {
-  const worldX = (mouseX - width / 2) / zoom - dragX;
-  const worldY = (mouseY - height / 2) / zoom - dragY;
-
   zoom += event.deltaY * 0.01;
   zoom = constrain(zoom, 0.1, 10);
-
-  const newWorldX = (mouseX - width / 2) / zoom - dragX;
-  const newWorldY = (mouseY - height / 2) / zoom - dragY;
-
-  dragX += newWorldX - worldX;
-  dragY += newWorldY - worldY;
 }
 
 function windowResized() {
@@ -248,14 +294,8 @@ function windowResized() {
 }
 
 function keyPressed() {
-  if (key === '+') {
-    cella += 10;
-    console.log("Distanza aumentata:", cella);
-  }
-  if (key === '-') {
-    cella = max(10, cella - 10);
-    console.log("Distanza diminuita:", cella);
-  }
+  if (key === '+') cella += 10;
+  if (key === '-') cella = max(10, cella - 10);
 }
 
 function getMese(data) {
@@ -263,7 +303,7 @@ function getMese(data) {
 }
 
 function getGiorno(data) {
-  return new Date(data).getDate(); // Usa getDate() invece di getDay()
+  return new Date(data).getDate();
 }
 
 function getAnno(data) {
@@ -295,15 +335,14 @@ class ImmagineSingola {
 
   emetti(x, y, z, attiva = false) {
     if (!this.img || !this.img.width) return;
-    this.x = x;
-    this.y = y;
-    this.z = z;
-
-    // Mostra l'immagine se:
-    // - il filtro temporale non è attivo (mostra tutte), OPPURE
-    // - l'immagine è attiva per l'ora corrente, OPPURE
-    // - mostraTutto è attivo
-    if (!filtroTemporaleAttivo || attiva || mostraTutto) {
+    const giornoSettimana = new Date(this.date).getDay();
+    const giornoSettimanaIndex = (giornoSettimana + 6) % 7;
+    if (
+      (!filtroTemporaleAttivo || attiva || mostraTutto) &&
+      filtriMese[this.mese] &&
+      filtriGiornoSettimana[giornoSettimanaIndex] &&
+      filtriAnno[this.anno]
+    ) {
       push();
       translate(x, y, z);
       rotateY(-rotY);
@@ -312,14 +351,4 @@ class ImmagineSingola {
       pop();
     }
   }
-}
-
-// Aggiungi questa funzione per il toggle di mostraTutto
-function toggleMostraTutto() {
-    mostraTutto = !mostraTutto;
-    const mostraTuttoButton = document.querySelector('#mostraTuttoButton');
-    if (mostraTuttoButton) {
-        mostraTuttoButton.classList.toggle('active');
-        mostraTuttoButton.textContent = mostraTutto ? "Nascondi" : "Mostra tutto";
-    }
 }

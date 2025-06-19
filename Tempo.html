@@ -46,7 +46,7 @@
             border-radius: 4px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 0px;
             height: auto;
             overflow: visible;
             width: 100%;      /* Usa tutta la larghezza disponibile */
@@ -274,6 +274,37 @@
             display: flex;
             justify-content: space-between;
         }
+
+       .filtro-btn {
+  font-family: monospace;
+  font-size: 12px;
+  margin: 0;
+  padding: 4px 6px;
+  background: none;
+  border: none;
+  color: white;
+  text-align: left;
+  cursor: pointer;
+}
+.filtro-btn.inactive {
+  text-decoration: line-through;
+  opacity: 0.4;
+}
+.option {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.option.fade-in {
+  opacity: 1;
+}
+
+.option.selected {
+  background: white;
+  color: black;
+}
+
+
         
     </style>
 </head>
@@ -472,10 +503,7 @@
         }
     }
 
-    // Inizializza la visualizzazione spaziale all'avvio
-    document.addEventListener('DOMContentLoaded', () => {
-        setupSpatialView();
-    });
+    
     </script>
 </body>
 </html>
