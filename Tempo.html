@@ -79,10 +79,14 @@
         }
 
         .option {
-            opacity: 0;
-            padding: 2px 0;
+            background: transparent;
+            color: #ddd;
+            border: none;
+            padding: 1px 2px;
+            font-family: "SFMono-Regular", Consolas, monospace;
+            font-size: 12px;
             cursor: pointer;
-            white-space: nowrap;
+            transition: all 0.2s ease;
         }
 
         @keyframes fadeIn {
@@ -102,12 +106,12 @@
 
         .option:hover {
             color: #fff;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.2);
         }
 
         .option.selected {
-            background: #fff;
-            color: #000;
+            background: #ffffff;
+            color: #000000;
         }
 
         .filter-controls {
@@ -304,8 +308,96 @@
   color: black;
 }
 
+.category-title {
+    color: #fff;
+    margin-bottom: 5px;
+    cursor: pointer;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 12px;
+}
 
-        
+.filter-row {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.year-filters {
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+    align-items: center;
+}
+
+.filter-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: flex-start;
+    gap: 0px;
+    padding: 0px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 120px;
+    padding: 0px;
+    border-left: 0px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Stile base per i bottoni filtro */
+.filter-option {
+    background: transparent;
+    color: #ddd;
+    border: none;
+    padding: 0px 0px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-block;
+    margin: 0px;
+}
+
+/* Stato selezionato: testo nero su sfondo bianco */
+.filter-option.selected {
+    background: #ffffff;
+    color: #000000;
+}
+
+/* Effetto hover */
+.filter-option:hover:not(.selected) {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Stile per i titoli delle categorie come bottoni */
+.filter-title {
+    color: #ddd;
+    background: transparent;
+    padding: 0px 0px;
+    margin: 0 0 8px 0;
+    cursor: pointer;
+    display: inline-block;
+    border: none;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+/* Stato attivo/selezionato per i titoli delle categorie */
+.filter-title.active {
+    background: #ffffff;
+    color: #000000;
+}
+
+/* Effetto hover per i titoli non selezionati */
+.filter-title:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.2);
+}
     </style>
 </head>
 <body>
@@ -355,9 +447,10 @@
                 <div style="display: flex; align-items: center; gap: 0px;">
                     <p style="margin:0px; color:#ffffff">Filtra per categoria:</p>
                     <div class="filter-controls" style="margin: 0;">
-                        <button id="avviaButton" onclick="toggleAutoCycle()">avvia</button>
-                    </div>
-                   
+                        <button id="toggleCycleBtn" onclick="toggleAutoCycle()">Ciclo Automatico</button>
+                   </div>
+                                   <!-- Assicurati che questo bottone sia presente -->
+                
                 </div>
                 <div id="classSelector">
                     <!-- Le categorie verranno popolate da sketch2.js -->
@@ -387,6 +480,7 @@
     <div id="canvasContainer" style="position: absolute; right: 0; top: 0; width: 100%; height: 100%;">
       <!-- Il canvas verrà creato qui da p5.js -->
     </div>
+
     <div class="footer">
         <div class="footer-col">Elaborato 1<br>Me-myself-and-AI<br>Self.log<br>Mirko Bassani<br></div>
         <div class="footer-col">Andreas Gysin<br>Giovanni Profeta<br>CV 429 Interaction Design<br>SUPSI DACD Mendrisio</div>    
@@ -505,5 +599,6 @@
 
     
     </script>
+   
 </body>
 </html>

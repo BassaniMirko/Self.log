@@ -304,3 +304,25 @@ function mouseWheel(event) {
   targetY *= zoomRatio;
   return false;
 }
+
+function setupFilters() {
+    // ...existing code...
+    
+    // Per ogni bottone filtro
+    const btn = createDiv(label);
+    btn.class('option');
+    btn.mousePressed(() => {
+        // Toggle della classe selected
+        btn.toggleClass('selected');
+        
+        // Aggiorna lo stato del filtro
+        const isSelected = btn.hasClass('selected');
+        updateFilter(label, isSelected);
+        
+        // Aggiorna la visualizzazione
+        redraw();
+    });
+    
+    // ...existing code...
+}
+

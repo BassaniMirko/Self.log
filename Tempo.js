@@ -11,7 +11,7 @@ let meseCorrente = 0;
 let giornoCorrente = 0;
 let annoCorrente = 0;
 let playing = false;
-let intervalloAnimazione;
+let intervalloAnimazione = null;
 let rotY = 0;
 let cella = 100;
 
@@ -28,6 +28,11 @@ let filtriGiornoSettimana = Array(7).fill(true);
 let filtriAnno = {};
 
 let categoriaAttiva = 'ore';
+
+// Aggiungi queste variabili globali all'inizio del file
+let isAutoCycling = false;
+let categoriaCycleInterval = null;
+let immaginiFiltrate = [];
 
 function preload() {
   data = loadJSON('data_date_time.json');
@@ -71,6 +76,19 @@ function setup() {
   slider = createSlider(0, 23, 0, 1).style('width', '100%').parent(controls);
   oraDisplay = createDiv('').style('color', '#fff').parent(controls);
 
+  // Crea i bottoni se non esistono
+  if (!select('#avviaButton')) {
+      const playBtn = createButton('Avvia');
+      playBtn.id('avviaButton');
+      playBtn.mousePressed(togglePlay);
+  }
+  
+  if (!select('#toggleCycleBtn')) {
+      const cycleBtn = createButton('Ciclo Automatico');
+      cycleBtn.id('toggleCycleBtn');
+      cycleBtn.mousePressed(toggleAutoCycle);
+  }
+
   const avviaButton = document.querySelector('#avviaButton');
   if (avviaButton) avviaButton.addEventListener('click', () => {
     playing = !playing;
@@ -107,168 +125,491 @@ function setup() {
     updateOraDisplay();
   });
 
-  const filtroWrapper = createDiv('').parent('filter').style('display', 'flex').style('flex-direction', 'column');
+  setupFilters();
+}
 
-  // [anni]
-  const labelAnni = createDiv('[anni]').parent(filtroWrapper).style('color', '#fff').style('cursor', 'pointer');
-  labelAnni.mousePressed(() => categoriaAttiva = 'anni');
-  const rigaAnni = createDiv('').parent(filtroWrapper).style('display', 'flex').style('flex-wrap', 'wrap').style('flex-direction', 'row').style('gap', '0');
-  let index = 0;
-  Object.keys(filtriAnno).forEach((anno, i) => {
-    const btn = createDiv(anno);
-    btn.class('option');
-    btn.mousePressed(() => {
-      filtriAnno[anno] = !filtriAnno[anno];
-      btn.classList.toggle('selected');
+function setupFilters() {
+    const filterDiv = select('#filter');
+    if (!filterDiv) {
+        console.error('Elemento #filter non trovato');
+        return;
+    }
+
+    const filterContainer = createDiv('');
+    filterContainer.class('filter-container');
+    filterContainer.parent(filterDiv);
+
+    // Ordine: Anni -> Mesi -> Giorni -> Ore
+    
+    // Setup Anni
+    const anniGroup = createFilterGroup('anni', Object.keys(filtriAnno).sort());
+    anniGroup.parent(filterContainer);
+    
+    // Setup Mesi
+    const mesiGroup = createFilterGroup('mesi', [
+        'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 
+        'Maggio', 'Giugno', 'Luglio', 'Agosto',
+        'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
+    ]);
+    mesiGroup.parent(filterContainer);
+    
+    // Setup Giorni
+    const giorniGroup = createFilterGroup('giorni', [
+        'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 
+        'Venerdì', 'Sabato', 'Domenica'
+    ]);
+    giorniGroup.parent(filterContainer);
+    
+    // Setup Ore
+    const oreArray = Array.from({length: 24}, (_, i) => 
+        i.toString().padStart(2, '0') + ':00'
+    );
+    const oreGroup = createFilterGroup('ore', oreArray);
+    oreGroup.parent(filterContainer);
+
+    // Aggiungi i titoli delle sezioni
+    const titles = ['[anni]', '[mesi]', '[giorni]', '[ore]'];
+    selectAll('.filter-group').forEach((group, i) => {
+        const title = createDiv(titles[i]);
+        title.class('category-title');
+        title.parent(group);
+        title.style('margin-bottom', '10px');
     });
-    setTimeout(() => {
-      rigaAnni.child(btn);
-      void btn.elt.offsetWidth;
-      btn.addClass('fade-in');
-    }, i * 100);
-  });
-
-  const filtroContainer = createDiv('').parent(filtroWrapper).style('display', 'flex').style('gap', '40px');
-
-  // [ore]
-  const labelOre = createDiv('[ore]').parent(filtroContainer).style('color', '#fff').style('cursor', 'pointer');
-  labelOre.mousePressed(() => categoriaAttiva = 'ore');
-  creaFiltroColonna(Array.from({length: 24}, (_, i) => i), filtroContainer, (val, btn) => {
-    filtroTemporaleAttivo = true;
-    oraCorrente = val;
-    slider.value(val);
-    updateOraDisplay();
-  }, 2);
-
-  // [mesi]
-  const labelMesi = createDiv('[mesi]').parent(filtroContainer).style('color', '#fff').style('cursor', 'pointer');
-  labelMesi.mousePressed(() => categoriaAttiva = 'mesi');
-  creaFiltroColonna([
-    "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
-    "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
-  ], filtroContainer, (nome, btn) => {
-    const index = [
-      "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
-      "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
-    ].indexOf(nome);
-    filtriMese[index] = !filtriMese[index];
-    btn.classList.toggle('selected');
-  }, 1);
-
-  // [giorni]
-  const labelGiorni = createDiv('[giorni]').parent(filtroContainer).style('color', '#fff').style('cursor', 'pointer');
-  labelGiorni.mousePressed(() => categoriaAttiva = 'giorni');
-  creaFiltroColonna([
-    "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"
-  ], filtroContainer, (nome, btn) => {
-    const index = [
-      "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"
-    ].indexOf(nome);
-    filtriGiornoSettimana[index] = !filtriGiornoSettimana[index];
-    btn.classList.toggle('selected');
-  }, 1);
-}
-
-function creaFiltroColonna(valori, container, onClickFn, colonne = 1) {
-  const itemsPerCol = Math.ceil(valori.length / colonne);
-  const cols = [];
-  for (let c = 0; c < colonne; c++) {
-    const col = createDiv('').style('display', 'flex').style('flex-direction', 'column').style('gap', '2px').parent(container);
-    cols.push(col);
-  }
-  valori.forEach((val, i) => {
-    const btn = createDiv(val.toString());
-    btn.class('option');
-    btn.mousePressed(() => onClickFn(val, btn));
-    setTimeout(() => {
-      cols[Math.floor(i / itemsPerCol)].child(btn);
-      void btn.elt.offsetWidth;
-      btn.addClass('fade-in');
-    }, i * 100);
-  });
-}
-
-function updateOraDisplay() {
-  oraDisplay.html(`ora: ${oraCorrente}`);
-}
-
-
-function creaFiltroColonna(valori, container, onClickFn, colonne = 1) {
-  const itemsPerCol = Math.ceil(valori.length / colonne);
-  const cols = [];
-  for (let c = 0; c < colonne; c++) {
-    const col = createDiv('').style('display', 'flex').style('flex-direction', 'column').style('gap', '2px').parent(container);
-    cols.push(col);
-  }
-  valori.forEach((val, i) => {
-    const btn = createDiv(val.toString());
-    btn.class('option');
-    btn.mousePressed(() => onClickFn(val, btn));
-    setTimeout(() => {
-      cols[Math.floor(i / itemsPerCol)].child(btn);
-      void btn.elt.offsetWidth;
-      btn.addClass('fade-in');
-    }, i * 100);
-  });
 }
 
 function togglePlay() {
-  playing = !playing;
-  filtroTemporaleAttivo = playing;
-  const avviaButton = document.querySelector('#avviaButton');
-  if (playing) {
-    intervalloAnimazione = setInterval(() => {
-      oraCorrente = (oraCorrente + 1) % 24;
-      slider.value(oraCorrente);
-      updateOraDisplay();
-    }, 1000);
-    if (avviaButton) {
-      avviaButton.textContent = "Pausa";
-      avviaButton.classList.add('active');
+    playing = !playing;
+    
+    const playButton = select('#avviaButton');
+    if (playButton) {
+        playButton.html(playing ? 'Pausa' : 'Avvia');
     }
-  } else {
-    clearInterval(intervalloAnimazione);
-    if (avviaButton) {
-      avviaButton.textContent = "Avvia";
-      avviaButton.classList.remove('active');
+    
+    if (playing) {
+        clearInterval(intervalloAnimazione);
+        
+        switch(categoriaAttiva) {
+            case 'ore':
+                intervalloAnimazione = setInterval(() => {
+                    oraCorrente = (oraCorrente + 1) % 24;
+                    updateVisualizzazione();
+                }, 1000);
+                break;
+                
+            case 'giorni':
+                intervalloAnimazione = setInterval(() => {
+                    filtriGiornoSettimana.fill(false);
+                    giornoCorrente = (giornoCorrente + 1) % 7;
+                    filtriGiornoSettimana[giornoCorrente] = true;
+                    updateVisualizzazione();
+                }, 1000);
+                break;
+                
+            case 'mesi':
+                intervalloAnimazione = setInterval(() => {
+                    filtriMese.fill(false);
+                    meseCorrente = (meseCorrente + 1) % 12;
+                    filtriMese[meseCorrente] = true;
+                    updateVisualizzazione();
+                }, 1000);
+                break;
+                
+            case 'anni':
+                const anni = Object.keys(filtriAnno).sort();
+                let annoIndex = anni.indexOf(annoCorrente.toString());
+                if (annoIndex === -1) annoIndex = 0;
+                
+                intervalloAnimazione = setInterval(() => {
+                    Object.keys(filtriAnno).forEach(a => filtriAnno[a] = false);
+                    annoIndex = (annoIndex + 1) % anni.length;
+                    annoCorrente = parseInt(anni[annoIndex]);
+                    filtriAnno[anni[annoIndex]] = true;
+                    updateVisualizzazione();
+                }, 1000);
+                break;
+        }
+    } else {
+        clearInterval(intervalloAnimazione);
     }
-  }
 }
 
-function contaImmaginiAttive(ora) {
-  return immagini.filter(img => img.ora === ora).length;
+function toggleAutoCycle() {
+    isAutoCycling = !isAutoCycling;
+    const cycleButton = select('#toggleCycleBtn');
+    
+    if (isAutoCycling) {
+        cycleButton.html('Ferma Ciclo');
+        
+        // Modifica l'array delle categorie per l'ordine corretto
+        const categorie = ['anni', 'mesi', 'giorni', 'ore'];
+        let indiceCategoriaAttuale = categorie.indexOf(categoriaAttiva);
+        if (indiceCategoriaAttuale === -1) indiceCategoriaAttuale = 0;
+        
+        function cambiaCategoriaEAvvia() {
+            if (playing) {
+                togglePlay();
+            }
+            
+            categoriaAttiva = categorie[indiceCategoriaAttuale];
+            
+            selectAll('.filter-title').forEach(t => t.removeClass('active'));
+            select(`#title-${categoriaAttiva}`).addClass('active');
+            
+            resetFiltri(categoriaAttiva);
+            
+            if (!playing) {
+                togglePlay();
+            }
+            
+            indiceCategoriaAttuale = (indiceCategoriaAttuale + 1) % categorie.length;
+        }
+        
+        cambiaCategoriaEAvvia();
+        categoriaCycleInterval = setInterval(cambiaCategoriaEAvvia, 10000);
+        
+    } else {
+        cycleButton.html('Ciclo Automatico');
+        clearInterval(categoriaCycleInterval);
+        
+        if (playing) {
+            togglePlay();
+        }
+    }
 }
 
+// Funzione di supporto per resettare i filtri
+function resetFiltri(categoria) {
+    switch(categoria) {
+        case 'ore':
+            oraCorrente = 0;
+            break;
+        case 'giorni':
+            filtriGiornoSettimana.fill(false);
+            giornoCorrente = 0;
+            filtriGiornoSettimana[giornoCorrente] = true;
+            break;
+        case 'mesi':
+            filtriMese.fill(false);
+            meseCorrente = 0;
+            filtriMese[meseCorrente] = true;
+            break;
+        case 'anni':
+            const anni = Object.keys(filtriAnno).sort();
+            Object.keys(filtriAnno).forEach(a => filtriAnno[a] = false);
+            filtriAnno[anni[0]] = true;
+            break;
+    }
+    updateVisualizzazione();
+}
+
+function aggiornaFiltriGiorni() {
+    // Resetta tutti i filtri giorni
+    filtriGiornoSettimana.fill(false);
+    // Attiva solo il giorno corrente
+    filtriGiornoSettimana[giornoCorrente] = true;
+    
+    // Aggiorna visivamente i bottoni
+    const giorniGroup = select('#giorni-group');
+    if (giorniGroup) {
+        giorniGroup.selectAll('.filter-option').forEach((btn, index) => {
+            btn.toggleClass('selected', index === giornoCorrente);
+        });
+    }
+    
+    updateVisualizzazione();
+}
+
+function aggiornaFiltriMesi() {
+    // Resetta tutti i filtri mesi
+    filtriMese.fill(false);
+    // Attiva solo il mese corrente
+    filtriMese[meseCorrente] = true;
+    
+    // Aggiorna visivamente i bottoni
+    const mesiGroup = select('#mesi-group');
+    if (mesiGroup) {
+        mesiGroup.selectAll('.filter-option').forEach((btn, index) => {
+            btn.toggleClass('selected', index === meseCorrente);
+        });
+    }
+    
+    updateVisualizzazione();
+}
+
+function updateFiltriOre(ora) {
+    // Reset tutti i filtri ore
+    select('.filter-options').selectAll('.filter-option').forEach(btn => {
+        btn.removeClass('selected');
+    });
+    // Seleziona l'ora corrente
+    select(`.filter-option[data-value="${ora}"]`).addClass('selected');
+    updateVisualizzazione();
+}
+
+function updateFiltriGiorni(giorno) {
+    filtriGiornoSettimana.fill(false);
+    filtriGiornoSettimana[giorno] = true;
+    updateFiltriVisual('giorni', giorno);
+    updateVisualizzazione();
+}
+
+function updateFiltriMesi(mese) {
+    filtriMese.fill(false);
+    filtriMese[mese] = true;
+    updateFiltriVisual('mesi', mese);
+    updateVisualizzazione();
+}
+
+function updateFiltriAnni(anno) {
+    Object.keys(filtriAnno).forEach(a => filtriAnno[a] = (parseInt(a) === anno));
+    updateFiltriVisual('anni', anno);
+    updateVisualizzazione();
+}
+
+function updateFiltriVisual(categoria, valore) {
+    // Aggiorna l'aspetto visivo dei filtri
+    select(`#${categoria}-group`).selectAll('.filter-option').forEach(btn => {
+        const val = btn.attribute('data-value');
+        btn.toggleClass('selected', val == valore);
+    });
+}
+
+function createFilterGroup(name, options) {
+    const group = createDiv('');
+    group.class('filter-group');
+    group.id(`${name}-group`);
+
+    // Titolo categoria come bottone
+    const title = createButton(`[${name}]`);
+    title.class('filter-title');
+    title.id(`title-${name}`);
+    if (categoriaAttiva === name) {
+        title.addClass('active');
+    }
+    
+    title.mousePressed(() => {
+        categoriaAttiva = name;
+        
+        // Aggiorna lo stato visivo dei titoli
+        selectAll('.filter-title').forEach(t => {
+            t.removeClass('active');
+        });
+        title.addClass('active');
+        
+        // Reset animazione se in corso
+        if (playing) {
+            togglePlay();
+        }
+        
+        updateVisualizzazione();
+    });
+    title.parent(group);
+
+    // Contenitore opzioni
+    const optionsDiv = createDiv('');
+    optionsDiv.class('filter-options');
+    optionsDiv.parent(group);
+
+    options.forEach((option, index) => {
+        const btn = createDiv(option);
+        btn.class('filter-option');
+        btn.attribute('data-value', option);
+        
+        btn.parent(optionsDiv);
+        btn.mousePressed(() => {
+            if (!playing) {
+                switch(name) {
+                    case 'ore':
+                        // Aggiorna oraCorrente e forza l'aggiornamento
+                        oraCorrente = index;
+                        selectAll('#ore-group .filter-option').forEach(b => {
+                            b.removeClass('selected');
+                        });
+                        btn.addClass('selected');
+                        break;
+                    // ... altri casi invariati ...
+                }
+                updateVisualizzazione();
+            }
+        });
+    });
+
+    return group;
+}
+
+function createFilterUI() {
+    const filterContainer = createDiv('');
+    filterContainer.class('filter-container');
+
+    // Anni
+    const anniOptions = Object.keys(filtriAnno).sort();
+    const anniGroup = createFilterGroup('anni', anniOptions);
+    anniGroup.parent(filterContainer);
+
+    // Mesi
+    const mesiOptions = [
+        'Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu',
+        'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'
+    ];
+    const mesiGroup = createFilterGroup('mesi', mesiOptions);
+    mesiGroup.parent(filterContainer);
+
+    // Giorni
+    const giorniOptions = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+    const giorniGroup = createFilterGroup('giorni', giorniOptions);
+    giorniGroup.parent(filterContainer);
+
+    // Ore
+    const oreOptions = Array.from({length: 24}, (_, i) => 
+        i.toString().padStart(2, '0') + ':00'
+    );
+    const oreGroup = createFilterGroup('ore', oreOptions);
+    oreGroup.parent(filterContainer);
+
+    return filterContainer;
+}
+
+// Aggiungi questa funzione per gestire lo stato visivo dei bottoni
+function aggiornaStatoVisivoPulsanti() {
+    // Resetta tutti i titoli delle categorie
+    selectAll('.filter-title').forEach(t => {
+        t.style('background', 'transparent');
+        t.style('color', '#fff');
+    });
+
+    // Evidenzia il titolo della categoria attiva
+    const titoloAttivo = select(`#title-${categoriaAttiva}`);
+    if (titoloAttivo) {
+        titoloAttivo.style('background', '#fff');
+        titoloAttivo.style('color', '#000');
+    }
+
+    // Aggiorna lo stato visivo dei pulsanti in base alla categoria
+    switch(categoriaAttiva) {
+        case 'ore':
+            selectAll('#ore-group .filter-option').forEach((btn, i) => {
+                btn.style('background', i === oraCorrente ? '#fff' : 'transparent');
+                btn.style('color', i === oraCorrente ? '#000' : '#fff');
+            });
+            break;
+
+        case 'giorni':
+            selectAll('#giorni-group .filter-option').forEach((btn, i) => {
+                btn.style('background', filtriGiornoSettimana[i] ? '#fff' : 'transparent');
+                btn.style('color', filtriGiornoSettimana[i] ? '#000' : '#fff');
+            });
+            break;
+
+        case 'mesi':
+            selectAll('#mesi-group .filter-option').forEach((btn, i) => {
+                btn.style('background', filtriMese[i] ? '#fff' : 'transparent');
+                btn.style('color', filtriMese[i] ? '#000' : '#fff');
+            });
+            break;
+
+        case 'anni':
+            selectAll('#anni-group .filter-option').forEach(btn => {
+                const anno = btn.html();
+                btn.style('background', filtriAnno[anno] ? '#fff' : 'transparent');
+                btn.style('color', filtriAnno[anno] ? '#000' : '#fff');
+            });
+            break;
+    }
+}
+
+// Aggiungi questa funzione per aggiornare il display dell'ora
 function updateOraDisplay() {
-  const numeroImmagini = contaImmaginiAttive(oraCorrente);
-  oraDisplay.html(`${oraCorrente.toString().padStart(2, '0')}:00 | ${numeroImmagini} immagini`);
+    selectAll('#ore-group .filter-option').forEach((btn, i) => {
+        btn.toggleClass('selected', i === oraCorrente);
+    });
+    updateVisualizzazione();
 }
 
+// Aggiungi questa funzione per filtrare le immagini
+function filtraImmagini() {
+    // Filtra le immagini in base alla categoria attiva
+    immaginiFiltrate = immagini.filter(img => shouldShowImage(img));
+    
+    // Aggiorna il contatore
+    const contatoreElement = select('#contatore');
+    if (contatoreElement) {
+        let testo = '';
+        switch (categoriaAttiva) {
+            case 'ore':
+                testo = `${oraCorrente.toString().padStart(2, '0')}:00`;
+                break;
+            case 'giorni':
+                const giorni = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
+                const giorniAttivi = giorni.filter((_, i) => filtriGiornoSettimana[i]);
+                testo = giorniAttivi.join(', ') || 'Tutti i giorni';
+                break;
+            case 'mesi':
+                const mesi = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 
+                            'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+                const mesiAttivi = mesi.filter((_, i) => filtriMese[i]);
+                testo = mesiAttivi.join(', ') || 'Tutti i mesi';
+                break;
+            case 'anni':
+                const anniAttivi = Object.keys(filtriAnno).filter(anno => filtriAnno[anno]);
+                testo = anniAttivi.join(', ') || 'Tutti gli anni';
+                break;
+        }
+        contatoreElement.html(`${testo} | ${immaginiFiltrate.length} immagini`);
+    }
+    
+    // Forza il ridisegno
+    redraw();
+}
+
+// Modifica la funzione updateVisualizzazione per usare filtraImmagini
+function updateVisualizzazione() {
+    // Prima filtra le immagini
+    filtraImmagini();
+    // Poi aggiorna lo stato visivo dei pulsanti
+    aggiornaStatoVisivoPulsanti();
+    // Forza il ridisegno
+    redraw();
+}
+
+// Modifica la funzione draw per usare immaginiFiltrate
 function draw() {
-  background(0);
-  scale(zoom);
-  translate(dragX, dragY, 0);
+    background(0);
+    scale(zoom);
+    translate(dragX, dragY, 0);
 
-  rotY += 0.002;
-  rotateY(rotY);
+    rotY += 0.002;
+    rotateY(rotY);
 
-  const cellaX = cella;
-  const cellaY = cella * 0.5;
-  const cellaZ = cella;
+    const cellaX = cella;
+    const cellaY = cella * 0.5;
+    const cellaZ = cella;
 
-  const offsX = -MESI * cellaX / 2;
-  const offsY = -GIORNI * cellaY / 2;
-  const offsZ = -ANNI * cellaZ / 2;
+    const offsX = -MESI * cellaX / 2;
+    const offsY = -GIORNI * cellaY / 2;
+    const offsZ = -ANNI * cellaZ / 2;
 
-  immagini.forEach(img => {
-    if (!img.img || !img.img.width) return;
+    // Usa immaginiFiltrate invece di filtrare qui
+    immaginiFiltrate.forEach(img => {
+        if (!img.img || !img.img.width) return;
 
-    const x = img.mese * cellaX + offsX;
-    const y = img.giorno * cellaY + offsY;
-    const z = (img.anno - getAnno(immagini[0].date)) * cellaZ + offsZ;
+        const x = img.mese * cellaX + offsX;
+        const y = img.giorno * cellaY + offsY;
+        const z = (img.anno - getAnno(immagini[0].date)) * cellaZ + offsZ;
+        
+        img.emetti(x, y, z, true);
+    });
 
-    img.emetti(x, y, z, img.ora === oraCorrente);
-  });
+    // Se non ci sono immagini visibili, mostra un messaggio
+    if (immagini.filter(img => shouldShowImage(img)).length === 0) {
+      push();
+      translate(0, 0, 0);
+      rotateY(-rotY);
+      fill(255);
+      textSize(24);
+      textAlign(CENTER, CENTER);
+      text("Nessuna immagine corrisponde ai filtri selezionati", 0, 0);
+      pop();
+    }
 }
 
 function mousePressed() {
@@ -333,22 +674,53 @@ class ImmagineSingola {
     this.ora = getOra(time);
   }
 
-  emetti(x, y, z, attiva = false) {
+  emetti(x, y, z, attiva = falsAe) {
     if (!this.img || !this.img.width) return;
-    const giornoSettimana = new Date(this.date).getDay();
-    const giornoSettimanaIndex = (giornoSettimana + 6) % 7;
-    if (
-      (!filtroTemporaleAttivo || attiva || mostraTutto) &&
-      filtriMese[this.mese] &&
-      filtriGiornoSettimana[giornoSettimanaIndex] &&
-      filtriAnno[this.anno]
-    ) {
-      push();
-      translate(x, y, z);
-      rotateY(-rotY);
-      texture(this.img);
-      plane(this.w, this.h);
-      pop();
-    }
+    
+    // Rimuovi la logica di filtro da qui poiché ora la gestisce shouldShowImage
+    push();
+    translate(x, y, z);
+    rotateY(-rotY);
+    texture(this.img);
+    plane(this.w, this.h);
+    pop();
   }
+}
+
+// Modifica la funzione shouldShowImage
+function shouldShowImage(img) {
+    if (!img.date || !img.time) return false;
+    
+    const hour = parseInt(img.time.split(':')[0]);
+    const date = new Date(img.date);
+    const giornoSettimana = date.getDay();
+    const giornoIndice = (giornoSettimana + 6) % 7;
+    
+    switch(categoriaAttiva) {
+        case 'ore':
+            // Controlla solo se l'ora corrisponde
+            // Non usare più il controllo dei bottoni selezionati
+            return hour === oraCorrente;
+            
+        case 'giorni':
+            if (filtriGiornoSettimana.every(f => !f)) {
+                return true;
+            }
+            return filtriGiornoSettimana[giornoIndice];
+            
+        case 'mesi':
+            if (filtriMese.every(f => !f)) {
+                return true;
+            }
+            return filtriMese[date.getMonth()];
+            
+        case 'anni':
+            if (Object.values(filtriAnno).every(f => !f)) {
+                return true;
+            }
+            return filtriAnno[date.getFullYear().toString()];
+            
+        default:
+            return true;
+    }
 }
