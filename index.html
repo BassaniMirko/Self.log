@@ -153,6 +153,23 @@
         text-decoration: underline;
         color: #ffffff;
     }
+    .footer {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 350px;
+            background: #00000000;
+            color: #aaa;
+            font-family: "SFMono-Regular", Consolas, monospace;
+            font-size: 12px;
+            padding: 0px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 2;
+        }
+        
+        
+      
   </style>
 </head>
 <body>
@@ -162,10 +179,10 @@
   <div class="container">
     <!-- Simulazione terminale -->
     <div class="system">
-        <h1 >Self.log</h1>
-        <p>Un archivio di 1000 immagini selezionate da un algoritmo a partire dalle mie fotografie personali.</p>
-        <p>La macchina ha riconosciuto soggetti ricorrenti, contorni e abitudini visive, restituendomi uno sguardo esterno su ciò che fotografo — e forse, su chi sono.</p>
-    </div>
+  <h1>Self.log</h1>
+  <p id="line1"></p>
+  <p id="line2"></p>
+</div>
     <div class="system">==&gt; Loading <a href="galleria.html" class="gallery-link">gallery</a> and renderer</div>
     <div class="output">✓ Modules attached</div>
     <div class="system">==&gt; Starting system...</div>
@@ -181,7 +198,10 @@
       <canvas id="canvas3d" width="800" height="600"></canvas>
     </div>
 
-   
+   <div class="footer">
+        <div class="footer-col">Elaborato 1<br>Me-myself-and-AI<br>Self.log<br>Mirko Bassani<br></div>
+        <div class="footer-col">Andreas Gysin<br>Giovanni Profeta<br>CV 429 Interaction Design<br>SUPSI DACD Mendrisio</div>    
+    </div>
   <!-- Importmap deve essere definito prima degli script che lo utilizzano -->
   <script type="importmap">
 {
@@ -555,6 +575,30 @@
             window.location.href = 'galleria.html';
         }, 1000);
     });
+    // Animazione del testo parola per parola
+function typeLine(id, text, delay = 300, callback = null) {
+  const words = text.split(" ");
+  const element = document.getElementById(id);
+  let i = 0;
+
+  function addWord() {
+    if (i < words.length) {
+      element.innerHTML += words[i] + " ";
+      i++;
+      setTimeout(addWord, delay);
+    } else if (callback) {
+      callback();
+    }
+  }
+
+  addWord();
+}
+
+// Avvia sequenzialmente le due righe
+typeLine("line1", "Un archivio di 1000 immagini selezionate da un algoritmo a partire dalle mie fotografie personali.", 100, () => {
+  typeLine("line2", "La macchina ha riconosciuto soggetti ricorrenti, contorni e abitudini visive, restituendomi uno sguardo esterno su ciò che fotografo — e forse, su chi sono.", 100);
+});
+
   </script>
 
 </body>

@@ -261,7 +261,19 @@
             color: #000;
         }
 
-        
+        .footer {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 350px;
+            background: #00000000;
+            color: #aaa;
+            font-family: "SFMono-Regular", Consolas, monospace;
+            font-size: 12px;
+            padding: 0px;
+            display: flex;
+            justify-content: space-between;
+        }
         
     </style>
 </head>
@@ -343,6 +355,10 @@
     "></div>
     <div id="canvasContainer" style="position: absolute; right: 0; top: 0; width: 100%; height: 100%;">
       <!-- Il canvas verrà creato qui da p5.js -->
+    </div>
+    <div class="footer">
+        <div class="footer-col">Elaborato 1<br>Me-myself-and-AI<br>Self.log<br>Mirko Bassani<br></div>
+        <div class="footer-col">Andreas Gysin<br>Giovanni Profeta<br>CV 429 Interaction Design<br>SUPSI DACD Mendrisio</div>    
     </div>
   <!-- Modifica la sezione degli script -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
