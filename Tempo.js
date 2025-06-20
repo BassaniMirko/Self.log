@@ -81,22 +81,27 @@ function setup() {
     const dateObj = new Date(item.date);
     anni.add(dateObj.getFullYear());
 
-    // Usa SOLO estensione .jpg
     const pathJPG = `assets/images_copia/${baseName}.jpg`;
-    
-    // Versione semplificata di caricaImmagine
-    loadImage(pathJPG, img => {
-      totaleImmagini++; // Incrementa il conteggio totale
-      immagini.push(new ImmagineSingola(
-        `${baseName}.jpg`, img, img.width, img.height, item.date,
-        item.time, getMese(item.date), getGiorno(item.date), getAnno(item.date)
-      ));
-      immaginiCaricate++;
-      console.log(`Immagini caricate: ${immaginiCaricate}/${Object.keys(data).length}`);
-    }, () => {
-      console.error(`Errore caricamento immagine: ${pathJPG}`);
-      // Non incrementare immaginiCaricate qui, per avere un conteggio accurato
-    });
+    const pathJPEG = `assets/images_copia/${baseName}.jpeg`;
+
+    // Modifica la funzione caricaImmagine nel setup
+    function caricaImmagine(path, fallbackPath) {
+      loadImage(path, img => {
+        immagini.push(new ImmagineSingola(
+          `${baseName}.jpg`, img, img.width, img.height, item.date,
+          item.time, getMese(item.date), getGiorno(item.date), getAnno(item.date)
+        ));
+        immaginiCaricate++;
+        console.log(`Immagini caricate: ${immaginiCaricate}/${totaleImmagini}`);
+      }, () => {
+        if (fallbackPath) caricaImmagine(fallbackPath, null);
+        else {
+          console.error("Immagine non trovata:", path);
+          immaginiCaricate++; // Contiamo comunque per non bloccare
+        }
+      });
+    }
+    caricaImmagine(pathJPG, pathJPEG);
   });
 
   ANNI = anni.size;
