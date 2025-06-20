@@ -38,67 +38,10 @@
             width: 350px;
             z-index: 2;
         }
+      
+       
 
-        #filter {
-            margin-top: 0px;
-            padding: 0px;
-            background: rgba(0, 0, 0, 0.0);
-            border-radius: 4px;
-            display: flex;
-            flex-direction: column;
-            gap: 0px;
-            height: auto;
-            overflow: visible;
-            width: 100%;      /* Usa tutta la larghezza disponibile */
-            /*box-sizing: border-box; /* Include padding nel calcolo della width */
-        }
-
-        .filter-controls {
-            display: flex;
-            flex-wrap: wrap;   /* Permette il wrapping dei bottoni */
-            gap: 5px;
-            margin: 5px 0;
-        }
-
-        #classSelector {
-            /*margin-top: 0px;
-            max-height: 800px;
-            max-width: 600px;
-            overflow-y: auto;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr); /* 6 colonne */
-           /* gap: 5px;          /* Spazio tra i bottoni */
-            padding: 0px;      /* Padding interno */
-        }
-
-        #classSelector option {
-            display: block;
-            padding: 2px 0;
-            white-space: nowrap;
-            background: transparent;
-        }
-
-        .option {
-            background: transparent;
-            color: #ddd;
-            border: none;
-            padding: 1px 2px;
-            font-family: "SFMono-Regular", Consolas, monospace;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(5px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+       
 
         .option.fade-in {
             animation: fadeIn 0.2s ease forwards;
@@ -179,8 +122,10 @@
             position: absolute;
             right: 0;
             top: 0;
-            width: 70%;
+            width: 100%;
             height: 100%;
+            pointer-events: auto; /* Consente eventi sul canvas */
+            z-index: 1; /* Canvas ha z-index inferiore */
         }
 
         #spatialViewButton, #timeViewButton {
@@ -214,7 +159,7 @@
             background: transparent;
             color: #ddd;
             border: 1px solid #333;
-            padding: 0px 2px;  /* Aumentato il padding */
+            padding: 0px 0px;  /* Aumentato il padding */
             margin: 0;
             font-family: monospace;
             font-size: 12px;
@@ -222,8 +167,8 @@
             transition: all 0.2s ease;
             white-space: nowrap; /* Evita il wrapping del testo */
             overflow: hidden;    /* Nasconde il testo in eccesso */
-            text-overflow: ellipsis; /* Mostra ... se il testo è troppo lungo */
-            min-width: 60px;    /* Larghezza minima */
+                 /* Mostra ... se il testo è troppo lungo */
+            min-width: 40px;    /* Larghezza minima */
             text-align: center; /* Allineamento testo */
         }
 
@@ -247,7 +192,7 @@
             background: transparent;
             color: #ddd;
             border: none;
-            padding: 2px 4px;
+            padding: 0px 0px;
             font-family: 'SFMono-Regular', Consolas, monospace;
             font-size: 12px;
             cursor: pointer;
@@ -277,13 +222,14 @@
             padding: 0px;
             display: flex;
             justify-content: space-between;
+            z-index: 2;
         }
 
        .filtro-btn {
   font-family: monospace;
   font-size: 12px;
   margin: 0;
-  padding: 4px 6px;
+  padding: 0px 6px;
   background: none;
   border: none;
   color: white;
@@ -332,72 +278,410 @@
 }
 
 .filter-container {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-around;
-    align-items: flex-start;
-    gap: 0px;
-    padding: 0px;
+  display: flex;
+  flex-direction: row;
+  gap: 14px;
+  padding: 0px;
+  justify-content: left;
 }
 
 .filter-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 120px;
-    padding: 0px;
-    border-left: 0px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+  min-width: 80px;
 }
 
-/* Stile base per i bottoni filtro */
-.filter-option {
-    background: transparent;
-    color: #ddd;
-    border: none;
-    padding: 0px 0px;
-    font-family: "SFMono-Regular", Consolas, monospace;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: inline-block;
-    margin: 0px;
+.filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+padding: 0px 2px;
+  text-align: left;
+  white-space: nowrap;
+  font-size: 12px;
+  cursor: pointer;
 }
 
-/* Stato selezionato: testo nero su sfondo bianco */
-.filter-option.selected {
-    background: #ffffff;
-    color: #000000;
+/* Stili per rendere lo slider più facile da usare */
+.categoria-slider {
+  width: 100%;
+  height: 20px;
+  margin: 10px 0;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  z-index: 10001 !important; /* Valore molto alto per sicurezza */
+  position: relative;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.3);
+  outline: none;
+  border-radius: 10px;
+  pointer-events: auto !important; /* Importante: forza la cattura degli eventi */
 }
 
-/* Effetto hover */
-.filter-option:hover:not(.selected) {
-    background: rgba(255, 255, 255, 0.2);
+/* Stili per il punto dello slider */
+.categoria-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #ffffff;
+  cursor: pointer;
+  border-radius: 50%;
 }
 
-/* Stile per i titoli delle categorie come bottoni */
+.categoria-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: #ffffff;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+/* Assicurati che i contenitori siano posizionati correttamente */
+.slider-controls {
+  position: relative;
+  z-index: 10000 !important; /* Valore molto alto per sicurezza */
+  padding: 10px;
+  background-color: #aaaaaa;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  pointer-events: auto !important; /* Forza la cattura degli eventi */
+}
+
+#slider-container {
+  position: relative;
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+  background-color: #aaaaaa;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 15px;
+}
+
+/* Migliora lo stile dello slider per renderlo più facile da usare */
+.categoria-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: #333;
+  outline: none;
+  position: relative;
+  z-index: 10000 !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+.categoria-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #aaaaaa;
+  cursor: pointer !important;
+  box-shadow: 0 0 5px rgba(0,0,0,0.5);
+  position: relative;
+  z-index: 10001 !important;
+  pointer-events: auto !important;
+}
+
+.categoria-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #aaaaaa;
+  cursor: pointer !important;
+  box-shadow: 0 0 5px rgba(0,0,0,0.5);
+  position: relative;
+  z-index: 10001 !important;
+  pointer-events: auto !important;
+}
+
+/* Sovrascrive il posizionamento del canvas per evitare che blocchi gli eventi */
+canvas {
+  position: fixed !important;
+  z-index: 0 !important;
+  pointer-events: auto;
+}
+
+/* Assicurati che i filtri siano sempre sopra il canvas */
+#filter {
+  position: relative !important;
+  z-index: 9998 !important;
+  pointer-events: auto !important;
+}
+
 .filter-title {
-    color: #ddd;
-    background: transparent;
-    padding: 0px 0px;
-    margin: 0 0 8px 0;
+  margin-bottom: 0px;
+  text-align: left;
+  
+  color: #888;
+  cursor: default;
+  padding: 0px 0px;
+}
+
+/* Evidenzia meglio i filtri */
+.filter-option {
+    padding: 0px 2px;
+    border-radius: 0px;
+    transition: all 0.1s ease;
+}
+
+.filter-option:hover {
+    background-color: rgba(255, 255, 255,) !important;
     cursor: pointer;
-    display: inline-block;
-    border: none;
-    font-family: "SFMono-Regular", Consolas, monospace;
-    font-size: 12px;
-    transition: all 0.3s ease;
 }
 
-/* Stato attivo/selezionato per i titoli delle categorie */
+/* Aumenta lo spazio tra gruppi di filtri per chiarezza */
+.filter-group {
+    margin-right: 0px;
+    min-width: 80px;
+    border-radius: 0px;
+    padding:2px;
+}
+
+.filter-title {
+  margin-bottom: 0px;
+  text-align: left;
+  padding-top: 0px;
+}
+
+/* Aggiungi questi stili al tuo CSS */
+
+/* Stile migliorato per lo slider */
+.categoria-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 16px;
+  border-radius: 0px;
+  background: #555;
+  outline: none;
+  position: relative;
+  z-index: 10001 !important;
+  pointer-events: auto !important;
+  margin: 0px 0;
+  cursor: pointer !important;
+}
+
+.categoria-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ff5722;
+  cursor: pointer !important;
+  z-index: 10002 !important;
+  pointer-events: auto !important;
+}
+
+.categoria-slider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ff5722;
+  cursor: pointer !important;
+  z-index: 10002 !important;
+  pointer-events: auto !important;
+}
+
+/* Migliora il contenitore dello slider */
+#slider-container {
+  position: relative;
+  z-index: 10000 !important;
+  width: 100%;
+  padding: 0px;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 5px;
+  margin: 0px 0;
+  pointer-events: auto !important;
+}
+
+/* Assicura che il filtro sia sopra il canvas */
+#filter {
+  position: relative;
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+}
+
+/* Forza il canvas sotto gli altri elementi */
+canvas.p5Canvas {
+  z-index: 1 !important;
+  position: absolute !important;
+}
+
+/* Miglioramento degli stili per i bottoni attivi */
+.filter-option.selected {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    
+    box-shadow: 0 0 0px rgba(255, 255, 255, 0.5);
+    transform: scale(1.05);
+}
+
 .filter-title.active {
-    background: #ffffff;
-    color: #000000;
+    color: #ffffff !important;
+    border-bottom: 0px solid #ffffff;
+    font-weight: bold;
 }
 
-/* Effetto hover per i titoli non selezionati */
-.filter-title:hover:not(.active) {
-    background: rgba(255, 255, 255, 0.2);
+/* Animazione per rendere più visibile la selezione */
+@keyframes highlight {
+    0% { transform: scale(1); }
+    50% { transform: scale(1); }
+    100% { transform: scale(1); }
 }
+
+.filter-option.selected {
+    animation: highlight 0.3s ease-out;
+    transition: all 0.2s ease;
+}
+
+/* Slider minimalista */
+.categoria-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2px;  /* Ridotta l'altezza per un aspetto più minimal */
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.3);  /* Colore più sottile e trasparente */
+  outline: none;
+  position: relative;
+  z-index: 10001 !important;
+  pointer-events: auto !important;
+  margin: 0px 0;  /* Aumentato il margine per rendere più facile la selezione */
+  cursor: pointer !important;
+}
+
+/* Thumb dello slider minimal */
+.categoria-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;  /* Dimensione ridotta */
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;  /* Colore bianco pulito */
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);  /* Ombra leggera */
+  cursor: pointer !important;
+  z-index: 10002 !important;
+  pointer-events: auto !important;
+  transition: transform 0.2s ease, background-color 0.2s ease;  /* Transizione animata */
+}
+
+.categoria-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+  cursor: pointer !important;
+  z-index: 10002 !important;
+  pointer-events: auto !important;
+  border: none;  /* Rimuove il bordo in Firefox */
+  transition: transform 0.2s ease, background-color 0.2s ease;
+} 
+/* Effetto hover sul thumb */
+.categoria-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);  /* Leggero ingrandimento al passaggio del mouse */
+  background-color: #ffffff;  /* Colore che richiama l'accento */
+}
+
+.categoria-slider::-moz-range-thumb:hover {
+  transform: scale(1.2);
+  background-color: #ffffff;
+}
+
+/* Migliora il contenitore dello slider per un aspetto più minimal */
+#slider-container {
+  position: relative;
+  z-index: 10000 !important;
+  width: 100%;
+  padding: 2px 0px;  /* Ridotto il padding orizzontale */
+  background-color: rgba(0, 0, 0, 0.3);  /* Sfondo più trasparente */
+  border-radius: 3px;  /* Bordo più sottile */
+  margin: 0px 0;
+  pointer-events: auto !important;
+}
+
+/* Stile minimal per il display della categoria */
+.categoria-display {
+  margin-top: 7px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: left;
+  letter-spacing: 0.5px;  /* Leggero aumento della spaziatura tra lettere */
+}
+
+/* Stili per le animazioni fade-in */
+.filter-option, .filter-title {
+  opacity: 0;
+  transition: background 0.2s, color 0.2s;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.filter-option.fade-in, .filter-title.fade-in {
+  animation: fadeIn 0.2s ease forwards;
+}
+
+/* Stili per i bottoni dei filtri */
+.filter-option {
+  padding: 0px 0px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #aaa;
+  transition: all 0.2s ease;
+}
+
+.filter-option.selected {
+  background: #fff !important;
+  color: #000 !important;
+  font-weight: normal;
+}
+
+.filter-option:hover {
+  color: #fff;
+}
+
+/* Layout per le ore */
+.ore-container {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.ore-colonna {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1;
+}
+
+/* Aggiungi questo stile nel tuo file HTML */
+#avviaButton {
+        transition: background-color 0.3s, color 0.3s;
+    }
+    
+    #avviaButton.active {
+        background-color: #fff !important;
+        color: #000 !important;
+        border: none;
+        font-weight: normal;
+    }
     </style>
 </head>
 <body>
@@ -411,7 +695,7 @@
         </div>
 
         <!-- Modifica la struttura del div filter -->
-        <div id="filter" class="system">
+        <div id="filter" class="system"> 
             <div>
                 <!-- Modifica la sezione dei bottoni di visualizzazione -->
                 <div style="margin-bottom: 15px; display: flex; align-items: center;">
@@ -447,10 +731,8 @@
                 <div style="display: flex; align-items: center; gap: 0px;">
                     <p style="margin:0px; color:#ffffff">Filtra per categoria:</p>
                     <div class="filter-controls" style="margin: 0;">
-                        <button id="toggleCycleBtn" onclick="toggleAutoCycle()">Ciclo Automatico</button>
-                   </div>
-                                   <!-- Assicurati che questo bottone sia presente -->
-                
+                        <button id="avviaButton">avvia</button>
+                    </div>
                 </div>
                 <div id="classSelector">
                     <!-- Le categorie verranno popolate da sketch2.js -->

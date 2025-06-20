@@ -29,10 +29,41 @@ let filtriAnno = {};
 
 let categoriaAttiva = 'ore';
 
+// Aggiungi questa variabile mancante
+let filtriAttivati = false;
+
+// All'inizio del file, dopo le variabili globali
+let immaginiCaricate = 0;
+let totaleImmagini = 0;
+
 // Aggiungi queste variabili globali all'inizio del file
-let isAutoCycling = false;
-let categoriaCycleInterval = null;
-let immaginiFiltrate = [];
+let cicloCategorieAttivo = false;
+let categorieDaCiclare = ['anni', 'mesi', 'giorni', 'ore'];
+let indiceCategoriaCorrente = 0;
+
+// Estrae il mese da una stringa data (0-11)
+function getMese(dateString) {
+    const date = new Date(dateString);
+    return date.getMonth(); // 0-11 (gennaio-dicembre)
+}
+
+// Estrae il giorno della settimana da una stringa data (0-6, dove 0 è lunedì)
+function getGiorno(dateString) {
+    const date = new Date(dateString);
+    return date.getDate() - 1; // Restituisce 0-30 per i giorni del mese (1-31)
+}
+
+// Estrae l'anno da una stringa data
+function getAnno(dateString) {
+    const date = new Date(dateString);
+    return date.getFullYear();
+}
+
+// Estrae l'ora da una stringa orario
+function getOra(timeString) {
+    if (!timeString) return 0;
+    return parseInt(timeString.split(':')[0]);
+}
 
 function preload() {
   data = loadJSON('data_date_time.json');
@@ -53,15 +84,21 @@ function setup() {
     const pathJPG = `assets/images_copia/${baseName}.jpg`;
     const pathJPEG = `assets/images_copia/${baseName}.jpeg`;
 
+    // Modifica la funzione caricaImmagine nel setup
     function caricaImmagine(path, fallbackPath) {
       loadImage(path, img => {
         immagini.push(new ImmagineSingola(
           `${baseName}.jpg`, img, img.width, img.height, item.date,
           item.time, getMese(item.date), getGiorno(item.date), getAnno(item.date)
         ));
+        immaginiCaricate++;
+        console.log(`Immagini caricate: ${immaginiCaricate}/${totaleImmagini}`);
       }, () => {
         if (fallbackPath) caricaImmagine(fallbackPath, null);
-        else console.error("Immagine non trovata:", path);
+        else {
+          console.error("Immagine non trovata:", path);
+          immaginiCaricate++; // Contiamo comunque per non bloccare
+        }
       });
     }
     caricaImmagine(pathJPG, pathJPEG);
@@ -72,214 +109,537 @@ function setup() {
 
   document.body.style.cursor = 'grab';
 
+  // Rimuovi la parte che ricrea lo slider, è una fonte di problemi:
   const controls = createDiv('').parent('filter');
-  slider = createSlider(0, 23, 0, 1).style('width', '100%').parent(controls);
-  oraDisplay = createDiv('').style('color', '#fff').parent(controls);
-
-  // Crea i bottoni se non esistono
-  if (!select('#avviaButton')) {
-      const playBtn = createButton('Avvia');
-      playBtn.id('avviaButton');
-      playBtn.mousePressed(togglePlay);
-  }
+  controls.class('slider-controls');
+  controls.id('slider-container');
+  controls.style('z-index', '10000'); // Aggiungi z-index elevato
   
-  if (!select('#toggleCycleBtn')) {
-      const cycleBtn = createButton('Ciclo Automatico');
-      cycleBtn.id('toggleCycleBtn');
-      cycleBtn.mousePressed(toggleAutoCycle);
-  }
+  // Crea lo slider standard HTML e aggiungi stile inline
+  const sliderEl = document.createElement('input');
+  sliderEl.type = 'range';
+  sliderEl.min = '0';
+  sliderEl.max = '23';
+  sliderEl.value = '0';
+  sliderEl.step = '1';
+  sliderEl.className = 'categoria-slider';
+  sliderEl.style.zIndex = '10001'; // Aggiungi z-index elevato
+  sliderEl.style.position = 'relative';
+  sliderEl.style.pointerEvents = 'auto'; // Forza gli eventi del mouse
+  
+  // Aggiungi il nuovo slider
+  document.getElementById('slider-container').appendChild(sliderEl);
+  
+  // Crea un wrapper per p5
+  slider = {
+    elt: sliderEl,
+    value: function(val) {
+      if (val === undefined) return parseInt(sliderEl.value);
+      sliderEl.value = val;
+      return this;
+    },
+    attribute: function(attr, val) {
+      if (val === undefined) return sliderEl.getAttribute(attr);
+      sliderEl.setAttribute(attr, val);
+      return this;
+    }
+  };
 
-  const avviaButton = document.querySelector('#avviaButton');
-  if (avviaButton) avviaButton.addEventListener('click', () => {
-    playing = !playing;
+  // Aggiungi l'event listener direttamente all'elemento DOM
+  sliderEl.addEventListener('input', function(e) {
+    // Previeni la propagazione dell'evento
+    e.stopPropagation();
+    
+    const valore = parseInt(this.value);
+    console.log("Slider spostato a:", valore);
+    
+    // Attiva i filtri
+    filtriAttivati = true;
+    
+    // Interrompi la riproduzione se attiva
     if (playing) {
       clearInterval(intervalloAnimazione);
-      let maxVal = 23;
-      let updateFn = () => { oraCorrente = step; slider.value(step); updateOraDisplay(); };
-
-      if (categoriaAttiva === 'mesi') {
-        maxVal = 11;
-        updateFn = () => { meseCorrente = step; oraDisplay.html(`mese: ${meseCorrente}`); };
-      } else if (categoriaAttiva === 'giorni') {
-        maxVal = 6;
-        updateFn = () => { giornoCorrente = step; oraDisplay.html(`giorno: ${giornoCorrente}`); };
-      } else if (categoriaAttiva === 'anni') {
-        maxVal = Object.keys(filtriAnno).length - 1;
-        const anniArray = Object.keys(filtriAnno);
-        updateFn = () => { annoCorrente = anniArray[step]; oraDisplay.html(`anno: ${annoCorrente}`); };
+      playing = false;
+      cicloCategorieAttivo = false;
+      const avviaButton = document.getElementById('avviaButton');
+      if (avviaButton) {
+        avviaButton.textContent = 'AVVIA';
+        avviaButton.classList.remove('active');
       }
-
-      let step = 0;
-      intervalloAnimazione = setInterval(() => {
-        updateFn();
-        step = (step + 1) % (maxVal + 1);
-      }, 1000);
-    } else {
-      clearInterval(intervalloAnimazione);
     }
+    
+    // Aggiorna in base alla categoria
+    switch(categoriaAttiva) {
+      case 'ore':
+        oraCorrente = valore;
+        break;
+      case 'giorni':
+        filtriGiornoSettimana.fill(false);
+        giornoCorrente = valore;
+        filtriGiornoSettimana[valore] = true;
+        break;
+      case 'mesi':
+        filtriMese.fill(false);
+        meseCorrente = valore;
+        filtriMese[valore] = true;
+        break;
+      case 'anni':
+        const anniArray = Object.keys(filtriAnno).sort();
+        if (valore >= 0 && valore < anniArray.length) {
+          Object.keys(filtriAnno).forEach(a => filtriAnno[a] = false);
+          annoCorrente = parseInt(anniArray[valore]);
+          filtriAnno[anniArray[valore]] = true;
+        }
+        break;
+    }
+    
+    // Aggiorna l'interfaccia e la visualizzazione
+    aggiornaStatoFiltri();
+    aggiornaDisplayCategoria();
+    updateVisualizzazione();
   });
+  
+  // Display per i valori e contatore immagini
+  oraDisplay = createDiv('').parent(controls);
+  oraDisplay.class('categoria-display');
 
-  slider.input(() => {
-    filtroTemporaleAttivo = true;
-    oraCorrente = parseInt(slider.value());
-    updateOraDisplay();
-  });
+  const avviaButton = document.querySelector('#avviaButton');
+  if (avviaButton) {
+    avviaButton.addEventListener('click', togglePlay);
+  }
 
   setupFilters();
+  aggiornaRangeSlider(); // Configura il range iniziale in base alla categoria attiva
+  updateVisualizzazione();
+  
+  // Assicurati che lo stato iniziale sia corretto
+  aggiornaStatoFiltri();
+  aggiornaDisplayCategoria();
+}
+
+// Modifica aggiornaRangeSlider per usare il nuovo slider
+function aggiornaRangeSlider() {
+  let min = 0;
+  let max = 0;
+  let valoreCorrente = 0;
+  
+  switch(categoriaAttiva) {
+    case 'ore':
+      min = 0;
+      max = 23;
+      valoreCorrente = oraCorrente;
+      break;
+    case 'giorni':
+      min = 0;
+      max = 6;
+      valoreCorrente = giornoCorrente;
+      break;
+    case 'mesi':
+      min = 0;
+      max = 11;
+      valoreCorrente = meseCorrente;
+      break;
+    case 'anni':
+      const anniArray = Object.keys(filtriAnno).sort();
+      min = 0;
+      max = anniArray.length - 1;
+      valoreCorrente = anniArray.indexOf(annoCorrente.toString());
+      if (valoreCorrente < 0) valoreCorrente = 0;
+      break;
+  }
+  
+  // Accedi direttamente all'elemento DOM
+  const sliderEl = document.querySelector('.categoria-slider');
+  if (!sliderEl) return;
+  
+  console.log(`Aggiornamento slider: min=${min}, max=${max}, valore=${valoreCorrente}`);
+  
+  // Aggiorna prima il valore poi min e max per evitare problemi di validazione
+  sliderEl.value = valoreCorrente;
+  sliderEl.min = min;
+  sliderEl.max = max;
+  
+  // Aggiorna il colore dello slider
+  sliderEl.style.accentColor = filtriAttivati ? '#ff5722' : '#666';
+  
+  // Aggiorna il display
+  aggiornaDisplayCategoria();
+}
+
+// Funzione per aggiornare la categoria in base al valore dello slider
+function aggiornaCategoriaDaSlider(valore) {
+  // Attiva sempre i filtri quando si usa lo slider
+  filtriAttivati = true;
+  
+  switch(categoriaAttiva) {
+    case 'ore':
+      oraCorrente = valore;
+      // Non dobbiamo fare altro per le ore
+      break;
+    case 'giorni':
+      giornoCorrente = valore;
+      // Reset dei filtri giorno e attivazione solo di quello selezionato
+      filtriGiornoSettimana.fill(false);
+      filtriGiornoSettimana[valore] = true;
+      break;
+    case 'mesi':
+      meseCorrente = valore;
+      // Reset dei filtri mese e attivazione solo di quello selezionato
+      filtriMese.fill(false);
+      filtriMese[valore] = true;
+      break;
+    case 'anni':
+      const anniArray = Object.keys(filtriAnno).sort();
+      annoCorrente = parseInt(anniArray[valore]);
+      // Reset dei filtri anno e attivazione solo di quello selezionato
+      Object.keys(filtriAnno).forEach(a => filtriAnno[a] = false);
+      filtriAnno[anniArray[valore]] = true;
+      break;
+  }
+  
+  // Aggiorna l'aspetto visivo dei bottoni
+  aggiornaStatoFiltri();
+  
+  // Aggiorna il display
+  aggiornaDisplayCategoria();
+  
+  // Aggiorna la visualizzazione (importante)
+  updateVisualizzazione();
+  
+  // Debug
+  console.log(`Slider aggiornato: categoria=${categoriaAttiva}, valore=${valore}`);
+}
+
+// Modifica la funzione createFilterGroup per aggiungere le classi fade-in
+function createFilterGroup(name, options) {
+    const group = createDiv('');
+    group.class('filter-group');
+    group.id(`${name}-group`);
+
+    // Titolo categoria
+    const title = createDiv(`[${name}]`);
+    title.class('filter-title');
+    title.id(`title-${name}`);
+    if (categoriaAttiva === name) {
+        title.addClass('active');
+    }
+    title.parent(group);
+    
+    // Aggiungi animazione al titolo con ritardo
+    setTimeout(() => {
+        title.addClass('fade-in');
+    }, 100);
+
+    // Contenitore opzioni
+    const optionsDiv = createDiv('');
+    optionsDiv.class('filter-options');
+    optionsDiv.parent(group);
+    
+    // Modifica specifica per le ore: due colonne
+    if (name === 'ore') {
+        // Crea due div distinti per le colonne
+        const oreContainer = createDiv('');
+        oreContainer.class('ore-container');
+        oreContainer.parent(optionsDiv);
+        
+        // Prima colonna (01-12)
+        const colonna1 = createDiv('');
+        colonna1.class('ore-colonna');
+        colonna1.parent(oreContainer);
+        
+        // Seconda colonna (13-00)
+        const colonna2 = createDiv('');
+        colonna2.class('ore-colonna');
+        colonna2.parent(oreContainer);
+        
+        // Popola la prima colonna con le ore da 01 a 12
+        for (let i = 1; i <= 12; i++) {
+            const ora = i;
+            const oraStr = ora.toString().padStart(2, '0');
+            
+            const btn = createDiv(oraStr);
+            btn.class('filter-option');
+            btn.attribute('data-value', ora);
+            btn.parent(colonna1);
+            
+            // Fade-in con ritardo progressivo
+            setTimeout(() => {
+                btn.addClass('fade-in');
+            }, 150 + i * 30);
+            
+            // Handler del click
+            btn.mousePressed(() => {
+                if (!playing) {
+                    if (categoriaAttiva !== name) {
+                        categoriaAttiva = name;
+                        document.querySelectorAll('.filter-title').forEach(t => t.classList.remove('active'));
+                        title.addClass('active');
+                        aggiornaRangeSlider();
+                    }
+                    
+                    const isAlreadySelected = oraCorrente === ora && filtriAttivati;
+                    
+                    if (isAlreadySelected) {
+                        filtriAttivati = false;
+                        oraDisplay.html(`Tutte le immagini | ${immagini.length} immagini`);
+                    } else {
+                        filtriAttivati = true;
+                        oraCorrente = ora;
+                        slider.value(ora);
+                    }
+                    
+                    aggiornaStatoFiltri();
+                    aggiornaDisplayCategoria();
+                    updateVisualizzazione();
+                }
+            });
+        }
+        
+        // Popola la seconda colonna con le ore da 13 a 00
+        for (let i = 13; i <= 24; i++) {
+            const ora = i % 24;
+            const oraStr = ora.toString().padStart(2, '0');
+            
+            const btn = createDiv(oraStr);
+            btn.class('filter-option');
+            btn.attribute('data-value', ora);
+            btn.parent(colonna2);
+            
+            // Fade-in con ritardo progressivo 
+            setTimeout(() => {
+                btn.addClass('fade-in');
+            }, 150 + i * 30);
+            
+            // Handler del click
+            btn.mousePressed(() => {
+                if (!playing) {
+                    if (categoriaAttiva !== name) {
+                        categoriaAttiva = name;
+                        document.querySelectorAll('.filter-title').forEach(t => t.classList.remove('active'));
+                        title.addClass('active');
+                        aggiornaRangeSlider();
+                    }
+                    
+                    const isAlreadySelected = oraCorrente === ora && filtriAttivati;
+                    
+                    if (isAlreadySelected) {
+                        filtriAttivati = false;
+                        oraDisplay.html(`Tutte le immagini | ${immagini.length} immagini`);
+                    } else {
+                        filtriAttivati = true;
+                        oraCorrente = ora;
+                        slider.value(ora);
+                    }
+                    
+                    aggiornaStatoFiltri();
+                    aggiornaDisplayCategoria();
+                    updateVisualizzazione();
+                }
+            });
+        }
+    } else {
+        // Per gli altri filtri (non ore), aggiungi la funzionalità di fade-in
+        options.forEach((option, index) => {
+            const btn = createDiv(option);
+            btn.class('filter-option');
+            
+            if (name === 'ore') {
+                btn.attribute('data-value', index);
+            } else {
+                btn.attribute('data-value', option);
+            }
+            
+            btn.parent(optionsDiv);
+            
+            // Aggiungi fade-in con ritardo progressivo
+            setTimeout(() => {
+                btn.addClass('fade-in');
+            }, 150 + index * 30);
+            
+            // Handler del click (stesso codice di prima)
+            btn.mousePressed(() => {
+                if (!playing) {
+                    if (categoriaAttiva !== name) {
+                        categoriaAttiva = name;
+                        document.querySelectorAll('.filter-title').forEach(t => t.classList.remove('active'));
+                        title.addClass('active');
+                        
+                        // Aggiorna il range dello slider per la nuova categoria
+                        aggiornaRangeSlider();
+                    }
+                    
+                    const isAlreadySelected = (name === 'giorni' && filtriGiornoSettimana[index] && filtriAttivati) ||
+                                            (name === 'mesi' && filtriMese[index] && filtriAttivati) ||
+                                            (name === 'anni' && filtriAnno[option] && filtriAttivati);
+                    
+                    if (isAlreadySelected) {
+                        filtriAttivati = false;
+                        oraDisplay.html(`Tutte le immagini | ${immagini.length} immagini`);
+                    } else {
+                        filtriAttivati = true;
+                        
+                        switch(name) {
+                            case 'giorni':
+                                filtriGiornoSettimana.fill(false);
+                                filtriGiornoSettimana[index] = true;
+                                giornoCorrente = index;
+                                slider.value(index);
+                                break;
+                            case 'mesi':
+                                filtriMese.fill(false);
+                                filtriMese[index] = true;
+                                meseCorrente = index;
+                                slider.value(index);
+                                break;
+                            case 'anni':
+                                Object.keys(filtriAnno).forEach(a => filtriAnno[a] = false);
+                                filtriAnno[option] = true;
+                                annoCorrente = parseInt(option);
+                                const anniArray = Object.keys(filtriAnno).sort();
+                                slider.value(anniArray.indexOf(option));
+                                break;
+                        }
+                    }
+                    
+                    // Aggiorna stato visivo bottoni
+                    aggiornaStatoFiltri();
+                    
+                    // Aggiorna display
+                    aggiornaDisplayCategoria();
+                    
+                    // Aggiorna visualizzazione
+                    updateVisualizzazione();
+                }
+            });
+        });
+    }
+    
+    return group;
+}
+
+// Funzione per aggiornare il display in base alla categoria attiva
+function aggiornaDisplayCategoria() {
+  // Se nessun filtro è attivo, mostra un messaggio che indica che vengono visualizzate tutte le immagini
+  if (!filtriAttivati) {
+    oraDisplay.html(`Tutte le immagini | ${immagini.length} immagini`);
+    return;
+  }
+  
+  let testo = '';
+  let numeroImmagini = 0;
+  
+  switch(categoriaAttiva) {
+    case 'ore':
+      testo = `${oraCorrente.toString().padStart(2, '0')}:00`;
+      numeroImmagini = immagini.filter(img => img.ora === oraCorrente).length;
+      break;
+    case 'giorni':
+      const giorni = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
+      testo = giorni[giornoCorrente];
+      numeroImmagini = immagini.filter(img => {
+        const date = new Date(img.date);
+        const dayOfWeek = date.getDay();
+        const dayIndex = (dayOfWeek + 6) % 7;
+        return dayIndex === giornoCorrente;
+      }).length;
+      break;
+    case 'mesi':
+      const mesi = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 
+                   'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+      testo = mesi[meseCorrente];
+      numeroImmagini = immagini.filter(img => getMese(img.date) === meseCorrente).length;
+      break;
+    case 'anni':
+      testo = annoCorrente.toString();
+      numeroImmagini = immagini.filter(img => getAnno(img.date) === annoCorrente).length;
+      break;
+  }
+  
+  oraDisplay.html(`${testo} | ${numeroImmagini} immagini`);
 }
 
 function setupFilters() {
+    // Verifica che l'elemento filter esista
     const filterDiv = select('#filter');
     if (!filterDiv) {
         console.error('Elemento #filter non trovato');
         return;
     }
 
+    // Crea il container principale
     const filterContainer = createDiv('');
     filterContainer.class('filter-container');
-    filterContainer.parent(filterDiv);
+    filterContainer.parent(filterDiv); // Usa l'elemento filter come parent
 
-    // Ordine: Anni -> Mesi -> Giorni -> Ore
+    // NUOVO ORDINE: ANNI, MESI, GIORNI, ORE
     
-    // Setup Anni
-    const anniGroup = createFilterGroup('anni', Object.keys(filtriAnno).sort());
+    // 1. Setup Anni
+    const anniGroup = createFilterGroup('anni', Object.keys(filtriAnno));
     anniGroup.parent(filterContainer);
     
-    // Setup Mesi
-    const mesiGroup = createFilterGroup('mesi', [
-        'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 
-        'Maggio', 'Giugno', 'Luglio', 'Agosto',
-        'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
-    ]);
+    // 2. Setup Mesi
+    const mesiGroup = createFilterGroup('mesi', ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 
+        'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre']);
     mesiGroup.parent(filterContainer);
     
-    // Setup Giorni
-    const giorniGroup = createFilterGroup('giorni', [
-        'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 
-        'Venerdì', 'Sabato', 'Domenica'
-    ]);
+    // 3. Setup Giorni
+    const giorniGroup = createFilterGroup('giorni', ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']);
     giorniGroup.parent(filterContainer);
     
-    // Setup Ore
-    const oreArray = Array.from({length: 24}, (_, i) => 
-        i.toString().padStart(2, '0') + ':00'
-    );
+    // 4. Setup Ore
+    // Nota: adesso partiamo da 01 e arriviamo a 12 per entrambe AM e PM
+    const oreArray = [
+        // Prima colonna (AM)
+        '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12',
+        // Seconda colonna (PM)
+        '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '00'
+    ];
     const oreGroup = createFilterGroup('ore', oreArray);
     oreGroup.parent(filterContainer);
-
-    // Aggiungi i titoli delle sezioni
-    const titles = ['[anni]', '[mesi]', '[giorni]', '[ore]'];
-    selectAll('.filter-group').forEach((group, i) => {
-        const title = createDiv(titles[i]);
-        title.class('category-title');
-        title.parent(group);
-        title.style('margin-bottom', '10px');
-    });
 }
 
+// Sostituisci la funzione togglePlay con questa versione migliorata
 function togglePlay() {
     playing = !playing;
-    
-    const playButton = select('#avviaButton');
-    if (playButton) {
-        playButton.html(playing ? 'Pausa' : 'Avvia');
-    }
+    cicloCategorieAttivo = playing; // Attiva anche il ciclo tra categorie
+    const avviaButton = document.getElementById('avviaButton');
     
     if (playing) {
-        clearInterval(intervalloAnimazione);
+        // Inizia il ciclo a partire dalla categoria attiva
+        indiceCategoriaCorrente = categorieDaCiclare.indexOf(categoriaAttiva);
+        if (indiceCategoriaCorrente === -1) indiceCategoriaCorrente = 0;
         
-        switch(categoriaAttiva) {
-            case 'ore':
-                intervalloAnimazione = setInterval(() => {
-                    oraCorrente = (oraCorrente + 1) % 24;
-                    updateVisualizzazione();
-                }, 1000);
-                break;
-                
-            case 'giorni':
-                intervalloAnimazione = setInterval(() => {
-                    filtriGiornoSettimana.fill(false);
-                    giornoCorrente = (giornoCorrente + 1) % 7;
-                    filtriGiornoSettimana[giornoCorrente] = true;
-                    updateVisualizzazione();
-                }, 1000);
-                break;
-                
-            case 'mesi':
-                intervalloAnimazione = setInterval(() => {
-                    filtriMese.fill(false);
-                    meseCorrente = (meseCorrente + 1) % 12;
-                    filtriMese[meseCorrente] = true;
-                    updateVisualizzazione();
-                }, 1000);
-                break;
-                
-            case 'anni':
-                const anni = Object.keys(filtriAnno).sort();
-                let annoIndex = anni.indexOf(annoCorrente.toString());
-                if (annoIndex === -1) annoIndex = 0;
-                
-                intervalloAnimazione = setInterval(() => {
-                    Object.keys(filtriAnno).forEach(a => filtriAnno[a] = false);
-                    annoIndex = (annoIndex + 1) % anni.length;
-                    annoCorrente = parseInt(anni[annoIndex]);
-                    filtriAnno[anni[annoIndex]] = true;
-                    updateVisualizzazione();
-                }, 1000);
-                break;
+        avviaCicloCategoria();
+        
+        if (avviaButton) {
+            avviaButton.textContent = 'ferma';
+            avviaButton.classList.add('active');
         }
     } else {
+        // Interrompi il ciclo
         clearInterval(intervalloAnimazione);
+        if (avviaButton) {
+            avviaButton.textContent = 'avvia';
+            avviaButton.classList.remove('active');
+        }
     }
 }
 
-function toggleAutoCycle() {
-    isAutoCycling = !isAutoCycling;
-    const cycleButton = select('#toggleCycleBtn');
+// Funzione che avvia il ciclo per la categoria corrente
+function avviaCicloCategoria() {
+    clearInterval(intervalloAnimazione); // Pulisci intervalli precedenti
     
-    if (isAutoCycling) {
-        cycleButton.html('Ferma Ciclo');
-        
-        // Modifica l'array delle categorie per l'ordine corretto
-        const categorie = ['anni', 'mesi', 'giorni', 'ore'];
-        let indiceCategoriaAttuale = categorie.indexOf(categoriaAttiva);
-        if (indiceCategoriaAttuale === -1) indiceCategoriaAttuale = 0;
-        
-        function cambiaCategoriaEAvvia() {
-            if (playing) {
-                togglePlay();
-            }
-            
-            categoriaAttiva = categorie[indiceCategoriaAttuale];
-            
-            selectAll('.filter-title').forEach(t => t.removeClass('active'));
-            select(`#title-${categoriaAttiva}`).addClass('active');
-            
-            resetFiltri(categoriaAttiva);
-            
-            if (!playing) {
-                togglePlay();
-            }
-            
-            indiceCategoriaAttuale = (indiceCategoriaAttuale + 1) % categorie.length;
-        }
-        
-        cambiaCategoriaEAvvia();
-        categoriaCycleInterval = setInterval(cambiaCategoriaEAvvia, 10000);
-        
-    } else {
-        cycleButton.html('Ciclo Automatico');
-        clearInterval(categoriaCycleInterval);
-        
-        if (playing) {
-            togglePlay();
-        }
-    }
-}
-
-// Funzione di supporto per resettare i filtri
-function resetFiltri(categoria) {
-    switch(categoria) {
+    // Imposta la categoria corrente come attiva
+    categoriaAttiva = categorieDaCiclare[indiceCategoriaCorrente];
+    filtriAttivati = true; // Assicurati che i filtri siano attivi
+    
+    // Aggiorna lo stato dei titoli
+    document.querySelectorAll('.filter-title').forEach(t => t.classList.remove('active'));
+    const titleElement = document.querySelector(`#title-${categoriaAttiva}`);
+    if (titleElement) titleElement.classList.add('active');
+    
+    // Reset dei filtri della categoria corrente
+    switch(categoriaAttiva) {
         case 'ore':
             oraCorrente = 0;
             break;
@@ -294,367 +654,192 @@ function resetFiltri(categoria) {
             filtriMese[meseCorrente] = true;
             break;
         case 'anni':
-            const anni = Object.keys(filtriAnno).sort();
+            const anniArray = Object.keys(filtriAnno).sort();
             Object.keys(filtriAnno).forEach(a => filtriAnno[a] = false);
-            filtriAnno[anni[0]] = true;
+            if (anniArray.length > 0) {
+                annoCorrente = parseInt(anniArray[0]);
+                filtriAnno[anniArray[0]] = true;
+            }
             break;
     }
-    updateVisualizzazione();
-}
-
-function aggiornaFiltriGiorni() {
-    // Resetta tutti i filtri giorni
-    filtriGiornoSettimana.fill(false);
-    // Attiva solo il giorno corrente
-    filtriGiornoSettimana[giornoCorrente] = true;
     
-    // Aggiorna visivamente i bottoni
-    const giorniGroup = select('#giorni-group');
-    if (giorniGroup) {
-        giorniGroup.selectAll('.filter-option').forEach((btn, index) => {
-            btn.toggleClass('selected', index === giornoCorrente);
-        });
-    }
+    // Aggiorna prima lo slider
+    aggiornaRangeSlider();
     
-    updateVisualizzazione();
-}
-
-function aggiornaFiltriMesi() {
-    // Resetta tutti i filtri mesi
-    filtriMese.fill(false);
-    // Attiva solo il mese corrente
-    filtriMese[meseCorrente] = true;
+    console.log(`Avvio ciclo per categoria: ${categoriaAttiva}`);
     
-    // Aggiorna visivamente i bottoni
-    const mesiGroup = select('#mesi-group');
-    if (mesiGroup) {
-        mesiGroup.selectAll('.filter-option').forEach((btn, index) => {
-            btn.toggleClass('selected', index === meseCorrente);
-        });
-    }
-    
-    updateVisualizzazione();
-}
-
-function updateFiltriOre(ora) {
-    // Reset tutti i filtri ore
-    select('.filter-options').selectAll('.filter-option').forEach(btn => {
-        btn.removeClass('selected');
-    });
-    // Seleziona l'ora corrente
-    select(`.filter-option[data-value="${ora}"]`).addClass('selected');
-    updateVisualizzazione();
-}
-
-function updateFiltriGiorni(giorno) {
-    filtriGiornoSettimana.fill(false);
-    filtriGiornoSettimana[giorno] = true;
-    updateFiltriVisual('giorni', giorno);
-    updateVisualizzazione();
-}
-
-function updateFiltriMesi(mese) {
-    filtriMese.fill(false);
-    filtriMese[mese] = true;
-    updateFiltriVisual('mesi', mese);
-    updateVisualizzazione();
-}
-
-function updateFiltriAnni(anno) {
-    Object.keys(filtriAnno).forEach(a => filtriAnno[a] = (parseInt(a) === anno));
-    updateFiltriVisual('anni', anno);
-    updateVisualizzazione();
-}
-
-function updateFiltriVisual(categoria, valore) {
-    // Aggiorna l'aspetto visivo dei filtri
-    select(`#${categoria}-group`).selectAll('.filter-option').forEach(btn => {
-        const val = btn.attribute('data-value');
-        btn.toggleClass('selected', val == valore);
-    });
-}
-
-function createFilterGroup(name, options) {
-    const group = createDiv('');
-    group.class('filter-group');
-    group.id(`${name}-group`);
-
-    // Titolo categoria come bottone
-    const title = createButton(`[${name}]`);
-    title.class('filter-title');
-    title.id(`title-${name}`);
-    if (categoriaAttiva === name) {
-        title.addClass('active');
-    }
-    
-    title.mousePressed(() => {
-        categoriaAttiva = name;
-        
-        // Aggiorna lo stato visivo dei titoli
-        selectAll('.filter-title').forEach(t => {
-            t.removeClass('active');
-        });
-        title.addClass('active');
-        
-        // Reset animazione se in corso
-        if (playing) {
-            togglePlay();
-        }
-        
-        updateVisualizzazione();
-    });
-    title.parent(group);
-
-    // Contenitore opzioni
-    const optionsDiv = createDiv('');
-    optionsDiv.class('filter-options');
-    optionsDiv.parent(group);
-
-    options.forEach((option, index) => {
-        const btn = createDiv(option);
-        btn.class('filter-option');
-        btn.attribute('data-value', option);
-        
-        btn.parent(optionsDiv);
-        btn.mousePressed(() => {
-            if (!playing) {
-                switch(name) {
-                    case 'ore':
-                        // Aggiorna oraCorrente e forza l'aggiornamento
-                        oraCorrente = index;
-                        selectAll('#ore-group .filter-option').forEach(b => {
-                            b.removeClass('selected');
-                        });
-                        btn.addClass('selected');
-                        break;
-                    // ... altri casi invariati ...
-                }
-                updateVisualizzazione();
-            }
-        });
-    });
-
-    return group;
-}
-
-function createFilterUI() {
-    const filterContainer = createDiv('');
-    filterContainer.class('filter-container');
-
-    // Anni
-    const anniOptions = Object.keys(filtriAnno).sort();
-    const anniGroup = createFilterGroup('anni', anniOptions);
-    anniGroup.parent(filterContainer);
-
-    // Mesi
-    const mesiOptions = [
-        'Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu',
-        'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'
-    ];
-    const mesiGroup = createFilterGroup('mesi', mesiOptions);
-    mesiGroup.parent(filterContainer);
-
-    // Giorni
-    const giorniOptions = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
-    const giorniGroup = createFilterGroup('giorni', giorniOptions);
-    giorniGroup.parent(filterContainer);
-
-    // Ore
-    const oreOptions = Array.from({length: 24}, (_, i) => 
-        i.toString().padStart(2, '0') + ':00'
-    );
-    const oreGroup = createFilterGroup('ore', oreOptions);
-    oreGroup.parent(filterContainer);
-
-    return filterContainer;
-}
-
-// Aggiungi questa funzione per gestire lo stato visivo dei bottoni
-function aggiornaStatoVisivoPulsanti() {
-    // Resetta tutti i titoli delle categorie
-    selectAll('.filter-title').forEach(t => {
-        t.style('background', 'transparent');
-        t.style('color', '#fff');
-    });
-
-    // Evidenzia il titolo della categoria attiva
-    const titoloAttivo = select(`#title-${categoriaAttiva}`);
-    if (titoloAttivo) {
-        titoloAttivo.style('background', '#fff');
-        titoloAttivo.style('color', '#000');
-    }
-
-    // Aggiorna lo stato visivo dei pulsanti in base alla categoria
+    // Configurazione dell'intervallo basata sulla categoria
     switch(categoriaAttiva) {
         case 'ore':
-            selectAll('#ore-group .filter-option').forEach((btn, i) => {
-                btn.style('background', i === oraCorrente ? '#fff' : 'transparent');
-                btn.style('color', i === oraCorrente ? '#000' : '#fff');
-            });
+            intervalloAnimazione = setInterval(() => {
+                oraCorrente = (oraCorrente + 1) % 24;
+                // Aggiorna il valore dello slider
+                const sliderEl = document.querySelector('.categoria-slider');
+                if (sliderEl) sliderEl.value = oraCorrente;
+                
+                // Aggiorna l'evidenziazione visiva
+                aggiornaStatoFiltri();
+                aggiornaDisplayCategoria();
+                updateVisualizzazione();
+                
+                if (oraCorrente === 0 && cicloCategorieAttivo) {
+                    passaAllaCategoriaSuccessiva();
+                }
+            }, 1000);
             break;
-
+            
         case 'giorni':
-            selectAll('#giorni-group .filter-option').forEach((btn, i) => {
-                btn.style('background', filtriGiornoSettimana[i] ? '#fff' : 'transparent');
-                btn.style('color', filtriGiornoSettimana[i] ? '#000' : '#fff');
-            });
+            intervalloAnimazione = setInterval(() => {
+                filtriGiornoSettimana[giornoCorrente] = false;
+                giornoCorrente = (giornoCorrente + 1) % 7;
+                filtriGiornoSettimana[giornoCorrente] = true;
+                
+                // Aggiorna il valore dello slider
+                const sliderEl = document.querySelector('.categoria-slider');
+                if (sliderEl) sliderEl.value = giornoCorrente;
+                
+                // Aggiorna l'evidenziazione visiva
+                aggiornaStatoFiltri();
+                aggiornaDisplayCategoria();
+                updateVisualizzazione();
+                
+                if (giornoCorrente === 0 && cicloCategorieAttivo) {
+                    passaAllaCategoriaSuccessiva();
+                }
+            }, 1000);
             break;
-
+            
         case 'mesi':
-            selectAll('#mesi-group .filter-option').forEach((btn, i) => {
-                btn.style('background', filtriMese[i] ? '#fff' : 'transparent');
-                btn.style('color', filtriMese[i] ? '#000' : '#fff');
-            });
+            intervalloAnimazione = setInterval(() => {
+                filtriMese[meseCorrente] = false;
+                meseCorrente = (meseCorrente + 1) % 12;
+                filtriMese[meseCorrente] = true;
+                
+                // Aggiorna il valore dello slider
+                const sliderEl = document.querySelector('.categoria-slider');
+                if (sliderEl) sliderEl.value = meseCorrente;
+                
+                // Aggiorna l'evidenziazione visiva
+                aggiornaStatoFiltri();
+                aggiornaDisplayCategoria();
+                updateVisualizzazione();
+                
+                if (meseCorrente === 0 && cicloCategorieAttivo) {
+                    passaAllaCategoriaSuccessiva();
+                }
+            }, 1000);
             break;
-
+            
         case 'anni':
-            selectAll('#anni-group .filter-option').forEach(btn => {
-                const anno = btn.html();
-                btn.style('background', filtriAnno[anno] ? '#fff' : 'transparent');
-                btn.style('color', filtriAnno[anno] ? '#000' : '#fff');
-            });
+            const anniArray = Object.keys(filtriAnno).sort();
+            let annoIndex = 0;
+            
+            intervalloAnimazione = setInterval(() => {
+                Object.keys(filtriAnno).forEach(a => filtriAnno[a] = false);
+                annoIndex = (annoIndex + 1) % anniArray.length;
+                annoCorrente = parseInt(anniArray[annoIndex]);
+                filtriAnno[anniArray[annoIndex]] = true;
+                
+                // Aggiorna il valore dello slider
+                const sliderEl = document.querySelector('.categoria-slider');
+                if (sliderEl) sliderEl.value = annoIndex;
+                
+                // Aggiorna l'evidenziazione visiva
+                aggiornaStatoFiltri();
+                aggiornaDisplayCategoria();
+                updateVisualizzazione();
+                
+                if (annoIndex === 0 && cicloCategorieAttivo) {
+                    passaAllaCategoriaSuccessiva();
+                }
+            }, 1000);
             break;
     }
-}
-
-// Aggiungi questa funzione per aggiornare il display dell'ora
-function updateOraDisplay() {
-    selectAll('#ore-group .filter-option').forEach((btn, i) => {
-        btn.toggleClass('selected', i === oraCorrente);
-    });
+    
+    // Aggiorna stato visivo e display
+    aggiornaStatoFiltri();
+    aggiornaDisplayCategoria();
+    
+    // Forza un aggiornamento immediato
     updateVisualizzazione();
 }
 
-// Aggiungi questa funzione per filtrare le immagini
-function filtraImmagini() {
-    // Filtra le immagini in base alla categoria attiva
-    immaginiFiltrate = immagini.filter(img => shouldShowImage(img));
+// Funzione per passare alla categoria successiva
+function passaAllaCategoriaSuccessiva() {
+    // Passa alla categoria successiva
+    indiceCategoriaCorrente = (indiceCategoriaCorrente + 1) % categorieDaCiclare.length;
     
-    // Aggiorna il contatore
-    const contatoreElement = select('#contatore');
-    if (contatoreElement) {
-        let testo = '';
-        switch (categoriaAttiva) {
-            case 'ore':
-                testo = `${oraCorrente.toString().padStart(2, '0')}:00`;
-                break;
-            case 'giorni':
-                const giorni = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
-                const giorniAttivi = giorni.filter((_, i) => filtriGiornoSettimana[i]);
-                testo = giorniAttivi.join(', ') || 'Tutti i giorni';
-                break;
-            case 'mesi':
-                const mesi = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 
-                            'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
-                const mesiAttivi = mesi.filter((_, i) => filtriMese[i]);
-                testo = mesiAttivi.join(', ') || 'Tutti i mesi';
-                break;
-            case 'anni':
-                const anniAttivi = Object.keys(filtriAnno).filter(anno => filtriAnno[anno]);
-                testo = anniAttivi.join(', ') || 'Tutti gli anni';
-                break;
-        }
-        contatoreElement.html(`${testo} | ${immaginiFiltrate.length} immagini`);
-    }
+    console.log(`Passaggio alla categoria successiva: ${categorieDaCiclare[indiceCategoriaCorrente]}`);
     
-    // Forza il ridisegno
-    redraw();
+    // Avvia il ciclo per la nuova categoria
+    avviaCicloCategoria();
 }
 
-// Modifica la funzione updateVisualizzazione per usare filtraImmagini
-function updateVisualizzazione() {
-    // Prima filtra le immagini
-    filtraImmagini();
-    // Poi aggiorna lo stato visivo dei pulsanti
-    aggiornaStatoVisivoPulsanti();
-    // Forza il ridisegno
-    redraw();
-}
-
-// Modifica la funzione draw per usare immaginiFiltrate
+// Definisci la funzione draw per visualizzare le immagini in 3D
 function draw() {
-    background(0);
-    scale(zoom);
-    translate(dragX, dragY, 0);
+  background(0);
+  
+  // Posizionamento della camera con rotazione
+  rotY += 0.002; // Incrementa la rotazione
+  
+  push();
+  translate(dragX, dragY, -200 * zoom);
+  rotateY(rotY);
+  
+  // Definisci le dimensioni della griglia 3D
+  const cellaX = cella;
+  const cellaY = cella * 0.5;
+  const cellaZ = cella;
 
-    rotY += 0.002;
-    rotateY(rotY);
+  // Calcola gli offset per centrare la griglia
+  const offsX = -MESI * cellaX / 2;
+  const offsY = -GIORNI * cellaY / 2;
+  const offsZ = -ANNI * cellaZ / 2;
+  
+  // Filtra le immagini da visualizzare
+  const immaginiVisibili = mostraTutto ? 
+    immagini : 
+    immagini.filter(img => shouldShowImage(img));
+  
+  // Debug info - numero immagini visibili
+  console.log(`Immagini totali: ${immagini.length}`);
+  console.log(`Immagini visibili dopo filtro: ${immaginiVisibili.length}`);
+  
+  // Se non ci sono immagini visibili, mostra un messaggio
+  if (immaginiVisibili.length === 0) {
+    push();
+    rotateY(-rotY); // Compensa la rotazione per il testo
+    translate(-100, 0, 0);
+    fill(255);
+    textSize(24);
+    text("Nessuna immagine per questo filtro", 0, 0);
+    pop();
+  } else {
+    // Visualizza le immagini in posizione 3D basata su mese, giorno e anno
+    immaginiVisibili.forEach(img => {
+      if (!img.img || !img.img.width) return;
 
-    const cellaX = cella;
-    const cellaY = cella * 0.5;
-    const cellaZ = cella;
+      // Posiziona in base al mese (0-11)
+      const x = img.mese * cellaX + offsX;
+      
+      // Posiziona in base al giorno del mese (0-30)
+      const y = img.giorno * cellaY + offsY;
+      
+      // Calcola z basato sull'anno relativo alla prima immagine
+      let baseAnno = 0;
+      if (immagini.length > 0) {
+        baseAnno = getAnno(immagini[0].date);
+      }
+      const z = (img.anno - baseAnno) * cellaZ + offsZ;
 
-    const offsX = -MESI * cellaX / 2;
-    const offsY = -GIORNI * cellaY / 2;
-    const offsZ = -ANNI * cellaZ / 2;
-
-    // Usa immaginiFiltrate invece di filtrare qui
-    immaginiFiltrate.forEach(img => {
-        if (!img.img || !img.img.width) return;
-
-        const x = img.mese * cellaX + offsX;
-        const y = img.giorno * cellaY + offsY;
-        const z = (img.anno - getAnno(immagini[0].date)) * cellaZ + offsZ;
-        
-        img.emetti(x, y, z, true);
+      img.emetti(x, y, z, img.ora === oraCorrente);
     });
-
-    // Se non ci sono immagini visibili, mostra un messaggio
-    if (immagini.filter(img => shouldShowImage(img)).length === 0) {
-      push();
-      translate(0, 0, 0);
-      rotateY(-rotY);
-      fill(255);
-      textSize(24);
-      textAlign(CENTER, CENTER);
-      text("Nessuna immagine corrisponde ai filtri selezionati", 0, 0);
-      pop();
-    }
+  }
+  
+  pop();
 }
 
-function mousePressed() {
-  document.body.style.cursor = 'grabbing';
-}
-
-function mouseReleased() {
-  document.body.style.cursor = 'grab';
-}
-
-function mouseDragged() {
-  dragX += (mouseX - pmouseX) / zoom;
-  dragY += (mouseY - pmouseY) / zoom;
-}
-
-function mouseWheel(event) {
-  zoom += event.deltaY * 0.01;
-  zoom = constrain(zoom, 0.1, 10);
-}
-
-function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
-}
-
-function keyPressed() {
-  if (key === '+') cella += 10;
-  if (key === '-') cella = max(10, cella - 10);
-}
-
-function getMese(data) {
-  return new Date(data).getMonth();
-}
-
-function getGiorno(data) {
-  return new Date(data).getDate();
-}
-
-function getAnno(data) {
-  return new Date(data).getFullYear();
-}
-
-function getOra(timeString) {
-  return parseInt(timeString.split(':')[0]);
-}
-
+// Aggiungi questa classe dopo le variabili globali ma prima della funzione preload()
 class ImmagineSingola {
   constructor(filename, img, w, h, date, time, mese, giorno, anno) {
     this.filename = filename;
@@ -668,16 +853,12 @@ class ImmagineSingola {
     this.mese = mese;
     this.giorno = giorno;
     this.anno = anno;
-    this.x = 0;
-    this.y = 0;
-    this.z = 0;
     this.ora = getOra(time);
   }
 
-  emetti(x, y, z, attiva = falsAe) {
+  emetti(x, y, z, attiva = false) {
     if (!this.img || !this.img.width) return;
     
-    // Rimuovi la logica di filtro da qui poiché ora la gestisce shouldShowImage
     push();
     translate(x, y, z);
     rotateY(-rotY);
@@ -687,40 +868,229 @@ class ImmagineSingola {
   }
 }
 
-// Modifica la funzione shouldShowImage
+// Correzione della funzione aggiornaStatoFiltri per gestire correttamente l'evidenziazione
+function aggiornaStatoFiltri() {
+    // Prima rimuovi la classe 'selected' da tutti i bottoni di filtro
+    document.querySelectorAll('.filter-option').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    
+    // Non aggiungere la classe 'selected' se i filtri non sono attivi
+    if (!filtriAttivati) {
+        return;
+    }
+    
+    // Poi applica la classe 'selected' solo ai filtri attivi
+    switch(categoriaAttiva) {
+        case 'ore':
+            // Per le ore, usa l'attributo data-value per trovare il bottone corretto
+            const bottoneOra = document.querySelector(`#ore-group .filter-option[data-value="${oraCorrente}"]`);
+            if (bottoneOra) {
+                bottoneOra.classList.add('selected');
+                console.log(`Evidenziato bottone ora: ${oraCorrente}. Testo bottone: ${bottoneOra.textContent}`);
+            } else {
+                console.warn(`Bottone ora non trovato con data-value="${oraCorrente}"`);
+                // Fallback: cerca per testo content
+                const testoOra = oraCorrente === 0 ? "00" : oraCorrente.toString().padStart(2, '0');
+                const bottoneOraAlt = Array.from(
+                    document.querySelectorAll('#ore-group .filter-option')
+                ).find(btn => btn.textContent === testoOra);
+                
+                if (bottoneOraAlt) {
+                    console.log(`Trovato bottone alternativo per ora ${oraCorrente}: ${testoOra}`);
+                    bottoneOraAlt.classList.add('selected');
+                }
+            }
+            break;
+            
+        case 'giorni':
+            // Per i giorni, scorri tutti i bottoni e controlla l'indice
+            const bottoniGiorni = document.querySelectorAll('#giorni-group .filter-option');
+            bottoniGiorni.forEach((btn, index) => {
+                if (filtriGiornoSettimana[index]) {
+                    btn.classList.add('selected');
+                    console.log("Evidenziato bottone giorno:", index);
+                }
+            });
+            break;
+            
+        case 'mesi':
+            // Per i mesi, scorri tutti i bottoni e controlla l'indice
+            const bottoniMesi = document.querySelectorAll('#mesi-group .filter-option');
+            bottoniMesi.forEach((btn, index) => {
+                if (filtriMese[index]) {
+                    btn.classList.add('selected');
+                    console.log("Evidenziato bottone mese:", index);
+                }
+            });
+            break;
+            
+        case 'anni':
+            // Per gli anni, confronta il testo del bottone con l'anno corrente
+            const bottoniAnni = document.querySelectorAll('#anni-group .filter-option');
+            bottoniAnni.forEach(btn => {
+                const anno = btn.textContent;
+                if (filtriAnno[anno]) {
+                    btn.classList.add('selected');
+                    console.log("Evidenziato bottone anno:", anno);
+                }
+            });
+            break;
+    }
+    
+    // Aggiorna anche il titolo attivo
+    document.querySelectorAll('.filter-title').forEach(title => {
+        title.classList.remove('active');
+    });
+    
+    const titoloAttivo = document.querySelector(`#title-${categoriaAttiva}`);
+    if (titoloAttivo) {
+        titoloAttivo.classList.add('active');
+    }
+}
+
+// Definisci la funzione updateVisualizzazione
+function updateVisualizzazione() {
+    console.log("Aggiornamento visualizzazione, categoria attiva:", categoriaAttiva);
+    // Forza il ridisegno
+    redraw();
+}
+
+// Definisci la funzione shouldShowImage
 function shouldShowImage(img) {
     if (!img.date || !img.time) return false;
+    if (mostraTutto) return true;
+    
+    // Controlla se ci sono filtri attivi
+    if (!filtriAttivati) return true;
     
     const hour = parseInt(img.time.split(':')[0]);
     const date = new Date(img.date);
-    const giornoSettimana = date.getDay();
-    const giornoIndice = (giornoSettimana + 6) % 7;
+    const dayOfWeek = date.getDay();
+    const dayIndex = (dayOfWeek + 6) % 7; // Converte da 0=Domenica a 0=Lunedì
+    const dayOfMonth = date.getDate() - 1; // 0-30
+    const month = date.getMonth();
+    const year = date.getFullYear();
     
     switch(categoriaAttiva) {
         case 'ore':
-            // Controlla solo se l'ora corrisponde
-            // Non usare più il controllo dei bottoni selezionati
+            // Gestione speciale per l'ora 0 (mezzanotte)
+            if (oraCorrente === 0) {
+                // Controlla sia se l'ora è 0 che se è 24 (per compatibilità con formati diversi)
+                return hour === 0 || hour === 24;
+            }
             return hour === oraCorrente;
-            
         case 'giorni':
-            if (filtriGiornoSettimana.every(f => !f)) {
-                return true;
-            }
-            return filtriGiornoSettimana[giornoIndice];
-            
+            return dayIndex === giornoCorrente;
         case 'mesi':
-            if (filtriMese.every(f => !f)) {
-                return true;
-            }
-            return filtriMese[date.getMonth()];
-            
+            return month === meseCorrente;
         case 'anni':
-            if (Object.values(filtriAnno).every(f => !f)) {
-                return true;
-            }
-            return filtriAnno[date.getFullYear().toString()];
-            
+            return filtriAnno[year];
         default:
             return true;
     }
+}
+
+// Funzioni per gestire l'interazione con il mouse
+function mousePressed(e) {
+  // Ottieni lo slider e il suo contenitore
+  const sliderContainer = document.getElementById('slider-container');
+  const sliderEl = document.querySelector('.categoria-slider');
+  
+  // Verifica se l'evento del mouse è sul slider
+  if (e && e.target && (
+      e.target === sliderEl || 
+      e.target === sliderContainer ||
+      sliderContainer.contains(e.target))) {
+    console.log("Click intercettato su slider");
+    return true; // Permetti l'evento predefinito
+  }
+  
+  // Verifica se siamo nell'area dell'UI
+  const isOverUI = (
+    mouseY < 200 && 
+    mouseX < 400
+  );
+  
+  if (isOverUI) {
+    return true;
+  }
+  
+  if (mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height) {
+    document.body.style.cursor = 'grabbing';
+    return false;
+  }
+}
+
+function mouseReleased() {
+  document.body.style.cursor = 'grab';
+}
+
+function mouseDragged(e) {
+  const sliderContainer = document.getElementById('slider-container');
+  const sliderEl = document.querySelector('.categoria-slider');
+  
+  if (e && e.target && (
+      e.target === sliderEl || 
+      e.target === sliderContainer ||
+      sliderContainer.contains(e.target))) {
+    return true;
+  }
+  
+  const isOverUI = (
+    mouseY < 200 && 
+    mouseX < 400
+  );
+  
+  if (isOverUI) {
+    return true;
+  }
+  
+  if (mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height) {
+    dragX += (mouseX - pmouseX) / zoom;
+    dragY += (mouseY - pmouseY) / zoom;
+    return false;
+  }
+}
+
+function mouseWheel(event) {
+  const isOverUI = (
+    mouseY < 200 && 
+    mouseX < 400
+  );
+  
+  if (isOverUI) {
+    return true; // Non prevenire eventi di default
+  }
+  
+  if (mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height) {
+    zoom -= event.delta * 0.001;
+    zoom = constrain(zoom, 0.1, 10);
+    return false;
+  }
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+
+function keyPressed() {
+  if (key === '+') cella += 10;
+  if (key === '-') cella = max(10, cella - 10);
+}
+
+// Aggiungi questa funzione dopo setupFilters()
+function disattivaFiltri() {
+    filtriAttivati = false;
+    
+    // Disattiva visualmente tutti i filtri
+    document.querySelectorAll('.filter-option').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    
+    // Aggiorna la visualizzazione per mostrare tutte le immagini
+    updateVisualizzazione();
+    
+    // Aggiorna il display
+    oraDisplay.html(`Tutte le immagini | ${immagini.length} immagini`);
 }
