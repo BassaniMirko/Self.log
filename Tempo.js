@@ -603,6 +603,34 @@ function setupFilters() {
     oreGroup.parent(filterContainer);
 }
 
+// All'inizio del setup, verifica se alcune immagini di test sono caricabili
+function verificaImmagineTest() {
+  const nomeTest = 'IMG_0224'; // Un nome file di esempio
+  
+  fetch(`assets/images_copia/${nomeTest}.jpg`)
+    .then(response => {
+      if (response.ok) {
+        console.log("✅ Estensione .jpg confermata");
+        // Continua con caricamento normale
+        caricaImmagini();
+      } else {
+        console.warn("⚠️ File .jpg non trovato, provo .jpeg");
+        
+        fetch(`assets/images_copia/${nomeTest}.jpeg`)
+          .then(response => {
+            if (response.ok) {
+              console.log("✅ Estensione .jpeg confermata");
+              // Usa .jpeg per tutte le immagini
+              caricaImmagini(true);
+            } else {
+              console.error("❌ Nessuna estensione valida trovata");
+              caricaImmagini(); // Prova comunque con .jpg
+            }
+          });
+      }
+    });
+}
+
 // Sostituisci la funzione togglePlay con questa versione migliorata
 function togglePlay() {
     playing = !playing;
