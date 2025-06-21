@@ -3,6 +3,7 @@ let data;
 let immagini = [];
 
 let zoom = 1;
+let targetZoom = 1;  // Zoom obiettivo a cui arrivare gradualmente
 let dragX = 0;
 let dragY = 0;
 
@@ -75,33 +76,37 @@ function setup() {
   noStroke();
 
   const anni = new Set();
+  
+  console.log("Inizio caricamento immagini...");
+  totaleImmagini = Object.keys(data).length;
+  
   Object.keys(data).forEach(k => {
     const item = data[k];
-    const baseName = item.filename.replace(/^.*[\\\/]/, '').replace(/\.(jpg|jpeg)$/i, '');
+    // Estrai il nome del file senza estensione
+    const baseName = item.filename.replace(/^.*[\\\/]/, '').replace(/\.(jpg|jpeg|JPG|JPEG)$/i, '');
     const dateObj = new Date(item.date);
     anni.add(dateObj.getFullYear());
 
+    // Usa SOLO estensione .jpg
     const pathJPG = `assets/images_copia/${baseName}.jpg`;
-    const pathJPEG = `assets/images_copia/${baseName}.jpeg`;
-
-    // Modifica la funzione caricaImmagine nel setup
-    function caricaImmagine(path, fallbackPath) {
-      loadImage(path, img => {
-        immagini.push(new ImmagineSingola(
-          `${baseName}.jpg`, img, img.width, img.height, item.date,
-          item.time, getMese(item.date), getGiorno(item.date), getAnno(item.date)
-        ));
-        immaginiCaricate++;
-        console.log(`Immagini caricate: ${immaginiCaricate}/${totaleImmagini}`);
-      }, () => {
-        if (fallbackPath) caricaImmagine(fallbackPath, null);
-        else {
-          console.error("Immagine non trovata:", path);
-          immaginiCaricate++; // Contiamo comunque per non bloccare
-        }
-      });
-    }
-    caricaImmagine(pathJPG, pathJPEG);
+    
+    console.log(`Tentativo caricamento: ${pathJPG}`);
+    
+    // Carica direttamente senza fallback
+    loadImage(pathJPG, img => {
+      immagini.push(new ImmagineSingola(
+        baseName, img, img.width, img.height, item.date,
+        item.time, getMese(item.date), getGiorno(item.date), getAnno(item.date)
+      ));
+      immaginiCaricate++;
+      
+      if (immaginiCaricate % 20 === 0 || immaginiCaricate === totaleImmagini) {
+        console.log(`Progresso: ${immaginiCaricate}/${totaleImmagini}`);
+      }
+    }, () => {
+      console.error(`Errore caricamento: ${pathJPG}`);
+      immaginiCaricate++; // Incrementa comunque per evitare blocchi
+    });
   });
 
   ANNI = anni.size;
@@ -779,6 +784,9 @@ function passaAllaCategoriaSuccessiva() {
 function draw() {
   background(0);
   
+  // Animazione fluida dello zoom
+  zoom = lerp(zoom, targetZoom, 0.1);
+  
   // Posizionamento della camera con rotazione
   rotY += 0.002; // Incrementa la rotazione
   
@@ -1064,8 +1072,9 @@ function mouseWheel(event) {
   }
   
   if (mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height) {
-    zoom -= event.delta * 0.001;
-    zoom = constrain(zoom, 0.1, 10);
+    // Calcola lo zoom target usando un fattore più piccolo per movimenti più precisi
+    targetZoom -= event.delta * 0.05;
+    targetZoom = constrain(targetZoom, 0.1, 10);
     return false;
   }
 }
