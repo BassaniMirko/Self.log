@@ -49,7 +49,7 @@ function draw() {
   background(0);
   
   // Calcola il progresso basato sul tempo
-  loadingProgress = constrain(((millis() - startTime) / 3000) * 100, 0, 100);
+  loadingProgress = constrain(((millis() - startTime) / 3000) * 100000, 0, 100);
   
   push();
   translate(-width/2, -height/2);

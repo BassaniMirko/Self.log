@@ -80,6 +80,10 @@ function setup() {
   console.log("Inizio caricamento immagini...");
   totaleImmagini = Object.keys(data).length;
   
+  // Aggiungi questa riga per rilevare il percorso base
+  const basePath = getBasePath();
+  console.log("Percorso base rilevato:", basePath);
+  
   Object.keys(data).forEach(k => {
     const item = data[k];
     // Estrai il nome del file senza estensione
@@ -87,12 +91,11 @@ function setup() {
     const dateObj = new Date(item.date);
     anni.add(dateObj.getFullYear());
 
-    // Usa SOLO estensione .jpg
-    const pathJPG = `assets/images_copia/${baseName}.jpg`;
+    // Il percorso corretto senza "Self.log/" all'inizio
+    const pathJPG = `${basePath}assets/images_copia/${baseName}.jpg`;
     
     console.log(`Tentativo caricamento: ${pathJPG}`);
     
-    // Carica direttamente senza fallback
     loadImage(pathJPG, img => {
       immagini.push(new ImmagineSingola(
         baseName, img, img.width, img.height, item.date,
@@ -105,6 +108,10 @@ function setup() {
       }
     }, () => {
       console.error(`Errore caricamento: ${pathJPG}`);
+      
+      // Aggiungi questo debug per verificare l'URL completo
+      console.log("URL completo:", window.location.origin + '/' + pathJPG);
+      
       immaginiCaricate++; // Incrementa comunque per evitare blocchi
     });
   });
@@ -1130,4 +1137,24 @@ function disattivaFiltri() {
     
     // Aggiorna il display
     oraDisplay.html(`Tutte le immagini | ${immagini.length} immagini`);
+}
+
+// Aggiungi questa funzione all'inizio del file
+function getBasePath() {
+  // Controlla se siamo su GitHub Pages
+  const isGitHubPages = window.location.hostname.includes('github.io');
+  
+  if (isGitHubPages) {
+    // Estrai il nome del repository dall'URL
+    const pathParts = window.location.pathname.split('/');
+    // Se il repository è nella root, non aggiungere nulla
+    if (pathParts.length <= 2) {
+      return '';
+    }
+    // Altrimenti, il secondo elemento è il nome del repository
+    return pathParts[1] + '/';
+  }
+  
+  // In locale, non serve alcun prefisso
+  return '';
 }

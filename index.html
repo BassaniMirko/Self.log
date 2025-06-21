@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Archivio Interattivo</title>
+  <title>self.log()</title>
   <style>
     body {
       margin: 0;
@@ -13,7 +13,7 @@
       line-height: 1.3;
       padding: 0px;
     }
-    .prompt { color: #00ff00; }
+    .prompt { color: #ffffff; }
     .command { color: #ffffff; }
     .system { color: #aaaaaa; }
     .output { color: #dddddd; }
@@ -125,20 +125,20 @@
 
     .filter-controls button {
         background: #000;
-        color: #00ff00;
-        border: 1px solid #00ff00;
+        color: #ffffff;
+        border: 1px solid #ffffff;
         padding: 5px 10px;
         font-family: "SFMono-Regular", Consolas, monospace;
         cursor: pointer;
     }
 
     .filter-controls button:hover {
-        background: #00ff00;
+        background: #ffffff;
         color: #000;
     }
 
     .gallery-link {
-        color: #00ff00;
+        color: #ffffff;
         text-decoration: none;
         cursor: pointer;
         background: none;
@@ -148,7 +148,7 @@
         padding: 0;
         margin: 0;
     }
-
+s
     .gallery-link:hover {
         text-decoration: underline;
         color: #ffffff;
@@ -168,8 +168,61 @@
             z-index: 2;
         }
         
-        
-      
+    /* Animazione per fade-in */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(5px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Stili per il testo terminale con opacità iniziale a 0 */
+    .terminal-text {
+      opacity: 0;
+    }
+
+    /* Stile per il testo che si digita parola per parola */
+    .typing-text {
+      display: inline-block;
+    }
+
+    /* Stile per elementi con fade-in */
+    .fade-element {
+      opacity: 0;
+      transform: translateY(5px);
+    }
+
+    /* Animazione fade-in */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(5px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .fade-in {
+      animation: fadeInUp 0.5s ease forwards;
+    }
+
+    /* Animazione punti lampeggianti */
+    @keyframes dotAnimation {
+      0%, 20% { content: "."; }
+      40%, 60% { content: ".."; }
+      80%, 100% { content: "..."; }
+    }
+
+    #dots::after {
+      content: ".";
+      animation: dotAnimation 1.5s infinite;
+    }
   </style>
 </head>
 <body>
@@ -179,14 +232,14 @@
   <div class="container">
     <!-- Simulazione terminale -->
     <div class="system">
-  <h1>Self.log</h1>
+  <h1>Self.log()</h1>
   <p id="line1"></p>
   <p id="line2"></p>
 </div>
-    <div class="system">==&gt; Loading <a href="galleria.html" class="gallery-link">gallery</a> and renderer</div>
-    <div class="output">✓ Modules attached</div>
-    <div class="system">==&gt; Starting system...</div>
-    <br>
+<div class="system fade-element" id="loading-text">==&gt; Loading <a href="galleria.html" class="gallery-link">gallery</a> and renderer</div>
+<div class="output fade-element" id="modules-text">✓ Modules attached</div>
+<div class="system fade-element" id="starting-text">==&gt; Starting system<span id="dots"></span></div>
+<br>
     
 
     <!-- Galleria con filtri -->
@@ -356,7 +409,8 @@
           const index = constructionProgress;
           constructedGeometry.attributes.position.array[index] = originalGeometry.attributes.position.array[index];
           
-          if (index % 3 === 2) { // Ogni tre vertici (una faccia completa)
+          if (index % 3 === 2) // Ogni tre vertici (una faccia completa)
+            {
             const uvIndex = Math.floor(index / 3) * 2;
             if (uvIndex + 1 < originalGeometry.attributes.uv.array.length) {
               constructedGeometry.attributes.uv.array[uvIndex] = originalGeometry.attributes.uv.array[uvIndex];
@@ -575,7 +629,7 @@
             window.location.href = 'galleria.html';
         }, 1000);
     });
-    // Animazione del testo parola per parola
+    // Animazione del testo e fade-in degli elementi
 function typeLine(id, text, delay = 300, callback = null) {
   const words = text.split(" ");
   const element = document.getElementById(id);
@@ -594,11 +648,28 @@ function typeLine(id, text, delay = 300, callback = null) {
   addWord();
 }
 
-// Avvia sequenzialmente le due righe
-typeLine("line1", "Un archivio di 1000 immagini selezionate da un algoritmo a partire dalle mie fotografie personali.", 100, () => {
-  typeLine("line2", "La macchina ha riconosciuto soggetti ricorrenti, contorni e abitudini visive, restituendomi uno sguardo esterno su ciò che fotografo — e forse, su chi sono.", 100);
-});
+// Animazione fade-in sequenziale
+function fadeInSequentially() {
+  const elements = document.querySelectorAll('.fade-element');
+  let delay = 2000; // Inizia dopo 2 secondi
+  
+  elements.forEach((el, index) => {
+    setTimeout(() => {
+      el.classList.add('fade-in');
+    }, delay + (index * 800)); // 800ms tra ogni elemento
+  });
+}
 
+// Avvia sequenzialmente le animazioni
+document.addEventListener('DOMContentLoaded', function() {
+  // Prima le righe di testo
+  typeLine("line1", "Un archivio di 1000 immagini selezionate da un algoritmo a partire dalle mie fotografie personali.", 100, () => {
+    typeLine("line2", "La macchina ha riconosciuto soggetti ricorrenti, contorni e abitudini visive, restituendomi uno sguardo esterno su ciò che fotografo — e forse, su chi sono.", 100, () => {
+      // Dopo aver digitato le righe, avvia il fade-in sequenziale
+      fadeInSequentially();
+    });
+  });
+});
   </script>
 
 </body>

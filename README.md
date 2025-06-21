@@ -1,10 +1,10 @@
-# Self.log
+# Self.log()
 
 [Link al sito](https://bassanimirko.github.io/Self.log/)
 
-**Self.log** è un archivio visivo generato a partire dalle mie fotografie, interpretate attraverso lo sguardo della macchina.
+**Self.log()** è un archivio visivo generato a partire dalle mie fotografie, interpretate attraverso lo sguardo della macchina.
 
-##  Cos'è Self.log
+##  Cos'è Self.log()
 
 Il nome richiama i file di log dei sistemi operativi — registri automatici delle attività interne di un sistema. Allo stesso modo, questo progetto è un log visivo generato dalla macchina per tracciare e comprendere chi sono, sulla base dei dati che le fornisco: le mie immagini.
 
@@ -36,3 +36,5 @@ Progetto di **Mirko Bassani**
 Docenti: [Andreas Gysin-Giovanni Profeta]  
 Università: SUPSI – Comunicazione Visiva  
 Anno: 2025
+
+![Demo del progetto](COSE/Bassani_Mirko_video.gif)
