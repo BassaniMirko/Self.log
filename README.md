@@ -37,4 +37,4 @@ Docenti: [Andreas Gysin-Giovanni Profeta]
 Università: SUPSI – Comunicazione Visiva  
 Anno: 2025
 
-![Demo del progetto](COSE/Bassani_Mirko_video.gif)
+![Demo del progetto](COSE/Output2.gif)
