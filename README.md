@@ -37,4 +37,4 @@ Docenti: [Andreas Gysin-Giovanni Profeta]
 Università: SUPSI – Comunicazione Visiva  
 Anno: 2025
 
-![Demo del progetto](COSE/Output2.gif)
+<img src="COSE/Output2.gif" width="800" alt="user experience" />
