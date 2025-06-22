@@ -69,17 +69,12 @@ L’analisi visiva si basa sull’uso del modello **YOLO (You Only Look Once)**,
 
 Infine, la visualizzazione delle immagini è ottimizzata grazie a un sistema di **atlas canvas rendering**, che carica tutte le immagini da un’unica texture, migliorando le performance grafiche e garantendo fluidità anche su dataset complessi.
 
----
-
-## Struttura del progetto
-
 | File | Descrizione |
 |------|-------------|
 | `images_copia` | Immagini originali analizzate |
 | `image_mapping_with_atlas_deduplicated.json` | Coordinate spaziali e classificazione delle immagini |
 | `data_date_time_without_position.json` | Dati temporali per la visualizzazione interattiva |
 
----
 
 ## Media di progetto
 
