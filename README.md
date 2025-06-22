@@ -30,6 +30,11 @@ Il repository include:
 - `image_mapping_with_atlas_deduplicated.json` — dati relativi a posizione e classificazione delle immagini
 - `data_date_time_without_position.json` — visualizzatore interattivo dell'ora di scatto
 
+##  screenvideo
+
+<img src="COSE/output2.gif" width="800" alt="user experience" />
+
+
 ##  Credits
 
 Progetto di **Mirko Bassani**  
@@ -37,4 +42,4 @@ Docenti: [Andreas Gysin-Giovanni Profeta]
 Università: SUPSI – Comunicazione Visiva  
 Anno: 2025
 
-![Demo del progetto](COSE/Output2.gif)
+
