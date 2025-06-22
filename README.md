@@ -10,71 +10,110 @@
 
 *Self.log()* nasce dall’analisi di **1054 immagini** provenienti dalla mia galleria personale. Il nome richiama la funzione `console.log()` di JavaScript: un’istruzione che restituisce informazioni su ciò che accade nel sistema. In questo caso, restituisce una visione automatica di me stesso.
 
-Attraverso processi di visione artificiale, la macchina interpreta, scompone e ricompone la mia memoria visiva, generando **due visualizzazioni principali**:
-1. Una basata sui **ritagli automatici** degli oggetti riconosciuti (oltre 4160 crop), classificati in base a ciò che la macchina ha “visto” all’interno delle foto.
-2. Una seconda visualizzazione organizzata **per orario di scatto**, che consente una lettura temporale dell’archivio.
+Attraverso processi di visione artificiale, la macchina interpreta e ricompone la mia memoria visiva, generando **due visualizzazioni principali**:
+1. Una basata sui **ritagli automatici** degli oggetti riconosciuti (oltre 4160 crop), classificati in base a ciò che la macchina ha “visto”.
+2. Una visualizzazione temporale che organizza le immagini in base all’**orario di scatto**, rivelando ritmi, abitudini e pattern invisibili.
 
 ---
 
 ## Visualizzazioni
 
 1. **Ritagli per soggetto (YOLO)**  
-   Usando il modello YOLO, ho ottenuto **4160 crop**: porzioni d’immagine ritagliate automaticamente in base agli oggetti rilevati (persone, auto, animali, ecc.). Questi elementi sono stati catalogati e distribuiti nello spazio visivo per rappresentare ciò che l’algoritmo ha identificato nelle immagini.
+   Utilizzando il modello YOLO, la macchina ha identificato e ritagliato **4160 oggetti** dalle immagini originali, classificandoli per tipo. Il risultato è una mappa visiva costruita non sulla base del soggetto fotografato, ma su ciò che la macchina ha riconosciuto.
 
 2. **Mappa temporale degli scatti**  
-   La seconda visualizzazione organizza le immagini secondo il **momento dello scatto** (ore, giorni, mesi, anni), rivelando pattern ritmici e abitudini nella produzione visiva quotidiana.
+   Le immagini vengono distribuite nello spazio in base a dati temporali (anno, mese, giorno, ora), offrendo una visualizzazione ritmica e comportamentale della mia produzione visiva.
 
 ---
 
 ## Riferimenti progettuali
 
-Il progetto si colloca tra data-art, archiviazione visiva e percezione algoritmica. Si ispira a:
+Il progetto si ispira a pratiche di archiviazione generativa e visualizzazione non lineare:
 
-- **[sp.eriksiemund.com](https://sp.eriksiemund.com/)** – archivio esplorabile in 3D che sfrutta metadati visivi per navigare immagini personali in uno spazio immersivo.
-- **[Uncertain Archive – Olafur Eliasson](https://olafureliasson.net/uncertain/)** – sistema visuale generativo che disordina l’archivio fotografico dell’artista rendendolo paesaggio.
-- **Estetica da prompt AI** – immagini disposte in modo astratto, interpretate e riclassificate da un sistema autonomo, con griglie fluide e clustering visivo non umano.
-- **Ritrattistica algoritmica** – autorappresentazioni basate su pattern invisibili, emersi da dati visivi e inferenze, anziché da volontà narrativa.
+- **[sp.eriksiemund.com](https://sp.eriksiemund.com/)** – archivio personale esplorabile in 3D, basato su clustering visivo e metadati.
+- **[Uncertain Archive – Olafur Eliasson](https://olafureliasson.net/uncertain/)** – paesaggio fotografico in continua riorganizzazione, non ordinato cronologicamente.
+- **Estetica da prompt AI** – immagini astratte, riconfigurazioni automatiche, distribuzioni visive indipendenti dalla semantica umana.
+- **Autorappresentazione algoritmica** – narrazione emergente dai dati, non dal controllo dell’autore.
 
 ---
 
 ## Design dell’interfaccia e modalità di interazione
 
-L’interfaccia si presenta come un ambiente 3D esplorabile, generato in tempo reale da dati visivi e metadati. L’utente può:
-- muoversi liberamente nello spazio tridimensionale,
-- filtrare le immagini per anno, mese, giorno e ora,
-- osservare come la macchina raggruppa elementi simili, non per coerenza semantica, ma per affinità algoritmica.
+L’interfaccia è pensata come uno spazio esplorabile generato da logiche non umane. L’utente può:
+- navigare liberamente nello spazio 3D,
+- filtrare le immagini per ora, giorno, mese, anno,
+- osservare le aggregazioni costruite dalla macchina in base a somiglianze formali o temporali.
 
-Ogni interazione costruisce una nuova versione del log: nessuna narrazione è imposta, nessun ordine prestabilito.
+Ogni accesso produce una diversa lettura dell’archivio: nessuna sequenza è imposta, nessuna interpretazione è definitiva.
 
 ---
 
 ## Target e contesto d’uso
 
-*Self.log()* è pensato per:
-- chi è interessato a esplorare il rapporto tra identità e machine vision,
-- chi lavora su archivi, fotografia computazionale o data visualization,
-- installazioni, mostre accademiche e progetti editoriali sperimentali.
+*Self.log()* si rivolge a chi è interessato a:
+- esplorare il rapporto tra identità, memoria e intelligenza artificiale,
+- lavorare su archivi visivi, dataset personali e data visualization,
+- creare installazioni interattive, mostre o esperienze online narrative e sperimentali.
 
-È uno strumento critico per interrogarsi su cosa viene visto, registrato e rappresentato quando a farlo è una macchina.
+È uno strumento per riflettere su cosa viene “visto” e restituito da una macchina.
 
 ---
 
 ## Tecnologie usate
 
-*Self.log()* è stato sviluppato utilizzando un set di tecnologie front-end mirate alla creazione di un'interfaccia leggera, reattiva e visualmente immersiva. La struttura del sito è costruita in **HTML**, mentre **CSS** definisce l’estetica ispirata ai terminali testuali, con animazioni minimali e griglie modulari. La logica interattiva è gestita in **JavaScript**, che coordina la navigazione tra le visualizzazioni, l’interpretazione dei comandi digitati, l’attivazione dei filtri temporali (anno, mese, giorno, ora) e la selezione dinamica delle immagini.
+- **HTML**  
+  Struttura del sito e markup della pagina.
 
-Per la visualizzazione tridimensionale ho utilizzato **p5.js in modalità WebGL**, che consente di mappare le immagini in uno spazio interattivo e navigabile, generando strutture come griglie, cilindri e mappe temporali. Il posizionamento spaziale è animato in tempo reale in base ai metadati delle immagini.
+- **CSS**  
+  Stile minimale ispirato all’interfaccia da terminale, con griglie, animazioni testuali e pulsanti interattivi.
 
-L’analisi visiva si basa sull’uso del modello **YOLO (You Only Look Once)**, che ha permesso di generare oltre **4160 crop** a partire da **1054 fotografie**. Questi ritagli, corrispondenti agli oggetti riconosciuti, sono stati catalogati e salvati in **file JSON**, poi utilizzati per costruire la prima visualizzazione. Le coordinate spaziali sono state anche esportate in **formato `.ply`**, per eventuali estensioni tridimensionali.
+- **JavaScript**  
+  Gestione della logica interattiva: comandi digitabili, filtri temporali (anno, mese, giorno, ora), transizioni tra visualizzazioni, selezione dinamica delle immagini.
 
-Infine, la visualizzazione delle immagini è ottimizzata grazie a un sistema di **atlas canvas rendering**, che carica tutte le immagini da un’unica texture, migliorando le performance grafiche e garantendo fluidità anche su dataset complessi.
+- **p5.js (WebGL)**  
+  Visualizzazione tridimensionale delle immagini nello spazio 3D.
+  
+- **YOLO EXTRACT + COLOR EXTRACT**  
+  Riconoscimento automatico degli oggetti all’interno delle immagini. Sono stati generati:
+  - 4160 crop da 1054 fotografie
+  - i dataset `data_yolo.json` e `color_extract.json`
 
-| File | Descrizione |
-|------|-------------|
-| `images_copia` | Immagini originali analizzate |
-| `image_mapping_with_atlas_deduplicated.json` | Coordinate spaziali e classificazione delle immagini |
-| `data_date_time_without_position.json` | Dati temporali per la visualizzazione interattiva |
+- **3D SCAN APP**
+  - Applicazione per iphone per eseguire scansioni 3d
+  - Output: Poincloud `.ply` e `.obj`
 
+- **Atlas Canvas Rendering**  
+  Tecnica di ottimizzazione grafica che impagina tutte le immagini in un’unica texture per migliorare le prestazioni.
+
+Questi strumenti mi hanno permesso di fondere i json creando delle combinazioni di dati partendo da semplici immagini:
+
+-`images_copia` | Immagini originali analizzate |
+`image_mapping_with_atlas_deduplicated.json` | Coordinate spaziali e classificazione delle immagini |
+`data_date_time_without_position.json` | Dati temporali per la visualizzazione interattiva |
+
+---
+
+**Un frammento del file** `image_mapping_with_atlas_deduplicated.json`:
+
+```json
+{
+  "file": "frame_0889.png",
+  "x": -21.36,
+  "y": 13.58,
+  "z": -12.75,
+  "classe": "person",
+  "atlasX": 4,
+  "atlasY": 5
+}
+Ogni voce contiene:
+
+file: nome del crop
+
+x, y, z: posizione 3D nel canvas
+
+classe: oggetto riconosciuto
+
+atlasX, atlasY: posizione nell’atlas canvas condiviso
 
 ## Media di progetto
 
