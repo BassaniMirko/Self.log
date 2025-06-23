@@ -125,12 +125,14 @@ Un frammento del file `image_mapping_with_atlas_deduplicated.json`:
 ## Media
 
 <img src="COSE/output2.gif" width="800" alt="user experience" />
-<p align="center"><i>Esplorazione dell'archivio attraverso la visualizzazione algoritmica</i></p>
+<p align="left"><i>Esplorazione dell'archivio attraverso la visualizzazione algoritmica</i></p>
 
 ---
 
 ## Credits
 
 Progetto di **Mirko Bassani**
+
 SUPSI 2025 – Corso d’Interaction Design, CV428.01
+
 Docenti: *Andreas Gysin*, *Giovanni Profeta*
