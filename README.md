@@ -101,21 +101,25 @@ Un frammento del file `image_mapping_with_atlas_deduplicated.json`:
 
 ```json
 {
-  "file": "frame_0889.png",
-  "x": -21.36,
-  "y": 13.58,
-  "z": -12.75,
-  "classe": "person",
-  "atlasX": 4,
-  "atlasY": 5
-}
+      "position": [
+        -0.16811677813529968,
+        0.2480773776769638,
+        0.03110112063586712
+      ],
+      "image": "0E995B33-BF27-45BD-80AC-4B4095DFCBE1_0.jpg",
+      "class": "person",
+      "x": 3136,
+      "y": 4032,
+      "width": 35,
+      "height": 64
+},
 ```
 
 * `file`: nome del crop
 * `x`, `y`, `z`: coordinate 3D
 * `classe`: oggetto riconosciuto
 * `atlasX`, `atlasY`: posizione nella texture condivisa (atlas canvas)
-
+* `width`, `height`: dimesione della porzione dell'immagine (atlas canvas)
 ---
 
 ## 🎞️ Media
