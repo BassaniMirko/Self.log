@@ -6,7 +6,7 @@
 
 ---
 
-## 📌 Introduzione e tema
+## Introduzione e tema
 
 *Self.log()* nasce dall’analisi di **1054 immagini** provenienti dalla mia galleria personale. Il nome richiama la funzione `console.log()` di JavaScript: un’istruzione che restituisce informazioni su ciò che accade nel sistema. In questo caso, restituisce una visione automatica di me stesso.
 
@@ -17,7 +17,7 @@ La macchina, attraverso processi di visione artificiale, ha interpretato, analiz
 
 ---
 
-## 🧭 Visualizzazioni
+## Visualizzazioni
 
 ### 1. Ritagli per soggetto (YOLO)
 
@@ -29,7 +29,7 @@ Una seconda modalità di navigazione distribuisce le immagini in uno spazio 3D s
 
 ---
 
-## 🧪 Riferimenti progettuali
+## Riferimenti progettuali
 
 Il progetto si colloca tra archiviazione algoritmica e rappresentazione identitaria attraverso la visione artificiale. Si ispira a:
 
@@ -40,7 +40,7 @@ Il progetto si colloca tra archiviazione algoritmica e rappresentazione identita
 
 ---
 
-## 🖱️ Design e interazione
+## Design e interazione
 
 * Navigazione libera nello **spazio 3D**
 * Filtri per **anno**, **mese**, **giorno** e **ora**
@@ -49,7 +49,7 @@ Il progetto si colloca tra archiviazione algoritmica e rappresentazione identita
 
 ---
 
-## 🎯 Target e contesto
+## Target e contesto
 
 Progetto destinato a:
 
@@ -59,7 +59,7 @@ Progetto destinato a:
 
 ---
 
-## 🛠️ Tecnologie usate
+## Tecnologie usate
 
 * **HTML**
   Struttura del sito e markup della pagina.
@@ -87,7 +87,7 @@ Progetto destinato a:
 
 Questi strumenti mi hanno permesso di fondere i dati JSON per generare strutture spaziali a partire da immagini personali.
 
-### 📂 File principali
+### File principali
 
 | File                                         | Descrizione                                          |
 | -------------------------------------------- | ---------------------------------------------------- |
@@ -95,7 +95,7 @@ Questi strumenti mi hanno permesso di fondere i dati JSON per generare strutture
 | `image_mapping_with_atlas_deduplicated.json` | Coordinate spaziali e classificazione delle immagini |
 | `data_date_time_without_position.json`       | Dati temporali per la visualizzazione interattiva    |
 
-### 📄 Esempio JSON
+### Esempio JSON
 
 Un frammento del file `image_mapping_with_atlas_deduplicated.json`:
 
@@ -122,14 +122,14 @@ Un frammento del file `image_mapping_with_atlas_deduplicated.json`:
 * `width`, `height`: dimesione della porzione dell'immagine (atlas canvas)
 ---
 
-## 🎞️ Media
+## Media
 
 <img src="COSE/output2.gif" width="800" alt="user experience" />
 <p align="center"><i>Esplorazione dell'archivio attraverso la visualizzazione algoritmica</i></p>
 
 ---
 
-## 👤 Credits
+## Credits
 
 Progetto di **Mirko Bassani**
 SUPSI 2025 – Corso d’Interaction Design, CV428.01
