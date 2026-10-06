@@ -87,7 +87,10 @@ function setup() {
   Object.keys(data).forEach(k => {
     const item = data[k];
     // Estrai il nome del file senza estensione
-    const baseName = item.filename.replace(/^.*[\\\/]/, '').replace(/\.(jpg|jpeg|JPG|JPEG)$/i, '');
+    const baseName = item.filename
+  .replace(/^.*[\\\/]/, '')
+  .replace(/\.(jpg|jpeg)$/i, '')
+  .toLowerCase();
     const dateObj = new Date(item.date);
     anni.add(dateObj.getFullYear());
 
