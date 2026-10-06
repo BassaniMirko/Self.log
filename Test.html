@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Self.log() - Test View</title>
+    <style>
+        body {
+            margin: 0;
+            background: #000000;
+            color: #ddd;
+            font-family: "SFMono-Regular", Consolas, monospace;
+            font-size: 12px;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-size: 12px;
+            color: #000000;
+            background-color: #ffffff;
+            font-weight: normal;
+            margin: 0;
+            padding-left: 4px;
+            padding-right: 2px;
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .container {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 350px;
+            z-index: 10;
+        }
+
+        #status {
+            margin-top: 10px;
+            padding: 5px 0;
+            color: #00ff00;
+        }
+
+        #videoContainer {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 240px;
+            height: 180px;
+            z-index: 5;
+            border: 1px solid #333;
+        }
+
+        #video, #output {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #output {
+            z-index: 2;
+        }
+
+        #controls {
+            margin-top: 10px;
+        }
+
+        button {
+            background: transparent;
+            color: #ddd;
+            border: 1px solid #333;
+            padding: 2px 4px;
+            font-family: "SFMono-Regular", Consolas, monospace;
+            font-size: 12px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+
+        button:hover {
+            background: #fff;
+            color: #000;
+        }
+
+        button.active {
+            background: #fff;
+            color: #000;
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 350px;
+            color: #aaa;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 2;
+        }
+
+        #metadataPanel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #333;
+            padding: 20px;
+            max-width: 400px;
+            display: none;
+            z-index: 200;
+        }
+
+        #metadataPanel.visible {
+            display: block;
+        }
+
+        .metadata-row {
+            margin: 10px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .metadata-label {
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .metadata-value {
+            color: #fff;
+        }
+
+        .close-btn {
+            float: right;
+            cursor: pointer;
+            color: #888;
+        }
+
+        .close-btn:hover {
+            color: #fff;
+        }
+
+        .color-palette {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .color-swatch {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #333;
+        }
+
+        .layout-btn {
+            margin: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="system">
+            <a href="galleria.html" style="text-decoration: none;">
+                <h1>Self.log()</h1>
+            </a>
+            <p>Un archivio di 1000 immagini selezionate da un algoritmo a partire dalle mie fotografie personali.</p>
+            <p>La macchina ha riconosciuto soggetti ricorrenti, contorni e abitudini visive, restituendomi uno sguardo esterno su ciò che fotografo — e forse, su chi sono.</p>
+            
+            <div style="margin-top: 15px; display: flex; align-items: center;">
+                <p style="margin:0; color:#ffffff; margin-right: 0px;">Tipo di visualizzazione:</p>
+                <div style="display: flex; gap: 0px;">
+                    <button onclick="window.location.href='galleria.html'" 
+                            style="
+                                background: transparent;
+                                color: #ddd;
+                                border: none;
+                                padding: 1px 2px;
+                                font-family: 'SFMono-Regular', Consolas, monospace;
+                                font-size: 12px;
+                                cursor: pointer;">
+                        Visuale
+                    </button>
+                    <button onclick="window.location.href='Tempo.html'" 
+                            style="
+                                background: transparent;
+                                color: #ddd;
+                                border: none;
+                                padding: 1px 2px;
+                                font-family: 'SFMono-Regular', Consolas, monospace;
+                                font-size: 12px;
+                                cursor: pointer;">
+                        Temporale
+                    </button>
+                    <button 
+                            style="
+                                background: #fff;
+                                color: #000;
+                                border: none;
+                                padding: 1px 2px;
+                                font-family: 'SFMono-Regular', Consolas, monospace;
+                                font-size: 12px;
+                                cursor: pointer;">
+                        Test
+                    </button>
+                </div>
+            </div>
+            
+            <div id="status" style="margin-top: 15px;">🔄 Inizializzazione...</div>
+            <div id="controls">
+                <p style="margin: 10px 0; color: #888;">Layout:</p>
+                <button class="layout-btn" data-layout="0">Sphere</button>
+                <button class="layout-btn" data-layout="1">Cube</button>
+                <button class="layout-btn" data-layout="2">Cylinder</button>
+                <button class="layout-btn" data-layout="3">Categories</button>
+                <br>
+                <button id="toggleMode" style="margin-top: 10px;">Switch to Mouse Mode</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="videoContainer">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="output"></canvas>
+    </div>
+
+    <div id="metadataPanel">
+        <span class="close-btn">✕</span>
+        <div id="metadataContent"></div>
+    </div>
+
+    <div class="footer">
+        <div class="footer-col">Elaborato 1<br>Me-myself-and-AI<br>Self.log<br>Mirko Bassani</div>
+        <div class="footer-col">Andreas Gysin<br>Giovanni Profeta<br>CV 429 Interaction Design<br>SUPSI DACD Mendrisio</div>    
+    </div>
+
+    <!-- MediaPipe Hands -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+    <!-- Three.js con importmap -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.1/build/three.module.js"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        // === VARIABILI GLOBALI ===
+        let atlasTexture = null;
+        let atlasTiles = [];
+        let atlasWidth = 4096;
+        let atlasHeight = 4096;
+
+        let rotationSpeed = 0; // Controllato dalla mano 1
+        let zoomLevel = 25;     // Controllato dalla mano 2
+        let mouseMode = false;
+        let isMouseDown = false;
+        let mouseLastX = 0;
+        let mouseLastY = 0;
+        let rotationVelocity = { x: 0, y: 0 };
+        let selectedPanel = null;
+        let autoRotate = 0;     // Rotazione automatica controllata
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        // === SCENA THREE.JS ===
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+
+        const camera = new THREE.PerspectiveCamera(
+            45,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        camera.position.set(0, 0, 25);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        renderer.domElement.style.position = 'fixed';
+        renderer.domElement.style.top = '0';
+        renderer.domElement.style.left = '0';
+        renderer.domElement.style.zIndex = '1';
+
+        const photoGroup = new THREE.Group();
+        scene.add(photoGroup);
+
+        const linesGroup = new THREE.Group();
+        scene.add(linesGroup);
+
+        const panels = [];
+        const NUM_PANELS = 800;
+
+        // Luci
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(2, 2, 2);
+        scene.add(directionalLight);
+
+        // === CARICAMENTO IMMAGINI DA CARTELLA ===
+        const imageFolder = 'assets/images_copia/';
+        let imageFiles = [];
+        const texLoader = new THREE.TextureLoader();
+        
+        // Lista di alcune immagini dalla cartella (useremo un subset)
+        const imageList = [
+            'img_0001.jpg', 'img_0140.jpg', 'img_0141.jpg', 'img_0150.jpg', 'img_0154.jpg',
+            'img_0170.jpg', 'img_0178.jpg', 'img_0218.jpg', 'img_0354.jpg', 'img_0376.jpg',
+            'img_0801.jpg', 'img_0912.jpg', 'img_1027.jpg', 'img_1054.jpg', 'img_1093.jpg',
+            'img_1169.jpg', 'img_1392.jpg', 'img_1584.jpg', 'img_1635.jpg', 'img_1727.jpg',
+            'img_1826.jpg', 'img_1887.jpg', 'img_1930.jpg', 'img_1956.jpg', 'img_2006.jpg',
+            'img_2148.jpg', 'img_2238.jpg', 'img_2350.jpg', 'img_3252.jpg', 'img_3553.jpg',
+            'img_3836.jpg', 'img_3972.jpg', 'img_4106.jpg', 'img_4215.jpg', 'img_4409.jpg',
+            'img_4537.jpg', 'img_4656.jpg', 'img_4740.jpg', 'img_4902.jpg', 'img_5038.jpg',
+            'img_5199.jpg', 'img_5332.jpg', 'img_5472.jpg', 'img_5618.jpg', 'img_5712.jpg',
+            'img_5816.jpg', 'img_5900.jpg', 'img_6008.jpg', 'img_6123.jpg', 'img_6193.jpg',
+            'img_6233.jpg', 'img_6434.jpg', 'img_6463.jpg', 'img_6525.jpg', 'img_6636.jpg',
+            'img_6729.jpg', 'img_6820.jpg', 'img_6856.jpg', 'img_6908.jpg', 'img_6999.jpg',
+            'img_7052.jpg', 'img_7110.jpg', 'img_7172.jpg', 'img_7224.jpg', 'img_7301.jpg',
+            'img_7388.jpg', 'img_7497.jpg', 'img_7539.jpg', 'img_7626.jpg', 'img_7660.jpg',
+            'img_7728.jpg', 'img_7869.jpg', 'img_7924.jpg', 'img_7974.jpg', 'img_8048.jpg',
+            'img_8122.jpg', 'img_8230.jpg', 'img_8345.jpg', 'img_8434.jpg', 'img_8537.jpg',
+            'img_8599.jpg', 'img_8650.jpg', 'img_8731.jpg', 'img_9019.jpg', 'img_9156.jpg',
+            'img_9234.jpg', 'img_9468.jpg', 'img_9706.jpg', 'img_9923.jpg', 'dsc_1390.jpg'
+        ];
+        
+        const status = document.getElementById("status");
+
+        loadImagesFromFolder();
+
+        function loadImagesFromFolder() {
+            updateStatus('📦 Caricamento immagini...');
+            createPanelsFromImages();
+        }
+
+        function createPlaceholderPanels() {
+            for (let i = 0; i < 100; i++) {
+                const geo = new THREE.PlaneGeometry(1.5, 1.5);
+                const mat = new THREE.MeshBasicMaterial({
+                    color: Math.random() * 0xffffff,
+                    side: THREE.DoubleSide
+                });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.userData.targetPosition = new THREE.Vector3();
+                mesh.userData.targetRotation = new THREE.Euler();
+                mesh.userData.category = "placeholder";
+                mesh.userData.isSelected = false;
+                photoGroup.add(mesh);
+                panels.push(mesh);
+            }
+            layoutOnSphere();
+            updateStatus("✋ Placeholder gallery ready");
+        }
+
+        function createPanelsFromImages() {
+            while (photoGroup.children.length > 0) {
+                photoGroup.remove(photoGroup.children[0]);
+            }
+            panels.length = 0;
+
+            const itemsToLoad = Math.min(imageList.length, 100);
+            let loadedCount = 0;
+            
+            for (let i = 0; i < itemsToLoad; i++) {
+                const imagePath = imageFolder + imageList[i];
+                const baseSize = 1.5;
+                
+                const geo = new THREE.PlaneGeometry(baseSize, baseSize);
+                
+                texLoader.load(
+                    imagePath,
+                    (texture) => {
+                        const aspectRatio = texture.image.width / texture.image.height;
+                        let width = baseSize;
+                        let height = baseSize;
+                        
+                        if (aspectRatio > 1) {
+                            height = baseSize / aspectRatio;
+                        } else {
+                            width = baseSize * aspectRatio;
+                        }
+                        
+                        const adjustedGeo = new THREE.PlaneGeometry(width, height);
+                        const mat = new THREE.MeshBasicMaterial({
+                            map: texture,
+                            side: THREE.DoubleSide
+                        });
+
+                        const mesh = new THREE.Mesh(adjustedGeo, mat);
+                        mesh.userData.targetPosition = new THREE.Vector3();
+                        mesh.userData.targetRotation = new THREE.Euler();
+                        mesh.userData.imageName = imageList[i];
+                        mesh.userData.isSelected = false;
+                        
+                        photoGroup.add(mesh);
+                        panels.push(mesh);
+                        
+                        loadedCount++;
+                        if (loadedCount === itemsToLoad) {
+                            layoutOnSphere();
+                            updateStatus("✋ Galleria caricata - usa le mani per interagire");
+                            console.log("Created panels:", panels.length);
+                        }
+                    },
+                    undefined,
+                    (err) => {
+                        console.warn(`Failed to load ${imagePath}`);
+                        loadedCount++;
+                        if (loadedCount === itemsToLoad) {
+                            layoutOnSphere();
+                            updateStatus("✋ Galleria caricata - usa le mani per interagire");
+                        }
+                    }
+                );
+            }
+        }
+
+        // === LAYOUTS ===
+        function layoutOnSphere(radius = 12) {
+            panels.forEach((mesh, i) => {
+                const phi = Math.acos(1 - 2 * (i + 0.5) / panels.length);
+                const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+
+                const x = Math.cos(theta) * Math.sin(phi) * radius;
+                const y = Math.sin(theta) * Math.sin(phi) * radius;
+                const z = Math.cos(phi) * radius;
+
+                mesh.userData.targetPosition.set(x, y, z);
+                mesh.lookAt(0, 0, 0);
+                mesh.userData.targetRotation.copy(mesh.rotation);
+            });
+        }
+
+        function layoutOnCube(size = 15) {
+            const half = size / 2;
+            panels.forEach(mesh => {
+                const face = Math.floor(Math.random() * 6);
+                const u = (Math.random() - 0.5) * size * 0.9;
+                const v = (Math.random() - 0.5) * size * 0.9;
+                let x = 0, y = 0, z = 0;
+
+                switch (face) {
+                    case 0: x = half; y = u; z = v; break;
+                    case 1: x = -half; y = u; z = v; break;
+                    case 2: y = half; x = u; z = v; break;
+                    case 3: y = -half; x = u; z = v; break;
+                    case 4: z = half; x = u; y = v; break;
+                    case 5: z = -half; x = u; y = v; break;
+                }
+
+                mesh.userData.targetPosition.set(x, y, z);
+                mesh.lookAt(0, 0, 0);
+                mesh.userData.targetRotation.copy(mesh.rotation);
+            });
+        }
+
+        function layoutOnCylinder(radius = 10, height = 15) {
+            panels.forEach(mesh => {
+                const theta = Math.random() * Math.PI * 2;
+                const h = (Math.random() - 0.5) * height;
+                const x = Math.cos(theta) * radius;
+                const z = Math.sin(theta) * radius;
+                const y = h;
+
+                mesh.userData.targetPosition.set(x, y, z);
+                mesh.lookAt(0, 0, 0);
+                mesh.userData.targetRotation.copy(mesh.rotation);
+            });
+        }
+
+        function layoutByCategory(clusterRadius = 3, orbitRadius = 15) {
+            const categoriesMap = new Map();
+            panels.forEach(panel => {
+                const category = panel.userData.category;
+                if (!categoriesMap.has(category)) {
+                    categoriesMap.set(category, []);
+                }
+                categoriesMap.get(category).push(panel);
+            });
+
+            const categoryList = Array.from(categoriesMap.keys());
+            
+            categoryList.forEach((category, catIndex) => {
+                const panelsInCategory = categoriesMap.get(category);
+                const theta = (catIndex / categoryList.length) * Math.PI * 2;
+                const phi = Math.asin((Math.random() - 0.5) * 2);
+                
+                const clusterCenterX = Math.cos(theta) * Math.cos(phi) * orbitRadius;
+                const clusterCenterY = Math.sin(phi) * orbitRadius;
+                const clusterCenterZ = Math.sin(theta) * Math.cos(phi) * orbitRadius;
+                
+                panelsInCategory.forEach((mesh, index) => {
+                    const localTheta = (index / panelsInCategory.length) * Math.PI * 2;
+                    const localPhi = Math.asin((Math.random() - 0.5) * 2);
+                    
+                    const x = clusterCenterX + Math.cos(localTheta) * Math.cos(localPhi) * clusterRadius;
+                    const y = clusterCenterY + Math.sin(localPhi) * clusterRadius;
+                    const z = clusterCenterZ + Math.sin(localTheta) * Math.cos(localPhi) * clusterRadius;
+                    
+                    mesh.userData.targetPosition.set(x, y, z);
+                    mesh.lookAt(clusterCenterX, clusterCenterY, clusterCenterZ);
+                    mesh.userData.targetRotation.copy(mesh.rotation);
+                });
+            });
+        }
+
+        const layouts = [
+            { name: "sphere", func: layoutOnSphere },
+            { name: "cube", func: layoutOnCube },
+            { name: "cylinder", func: layoutOnCylinder },
+            { name: "categories", func: layoutByCategory }
+        ];
+        let currentLayoutIndex = 0;
+
+        // === ANIMAZIONE ===
+        const clock = new THREE.Clock();
+        let currentZoom = camera.position.z;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const dt = clock.getDelta();
+
+            const lerpSpeed = 0.05;
+            panels.forEach(mesh => {
+                if (mesh.userData.isSelected) {
+                    const cameraDir = new THREE.Vector3();
+                    camera.getWorldDirection(cameraDir);
+                    const targetPos = camera.position.clone().add(cameraDir.multiplyScalar(5));
+                    
+                    mesh.position.lerp(targetPos, lerpSpeed * 2);
+                    mesh.lookAt(camera.position);
+                    mesh.rotation.copy(mesh.rotation);
+                } else {
+                    mesh.position.lerp(mesh.userData.targetPosition, lerpSpeed);
+                    mesh.rotation.x = THREE.MathUtils.lerp(mesh.rotation.x, mesh.userData.targetRotation.x, lerpSpeed);
+                    mesh.rotation.y = THREE.MathUtils.lerp(mesh.rotation.y, mesh.userData.targetRotation.y, lerpSpeed);
+                    mesh.rotation.z = THREE.MathUtils.lerp(mesh.rotation.z, mesh.userData.targetRotation.z, lerpSpeed);
+                }
+            });
+
+            if (mouseMode) {
+                photoGroup.rotation.y += rotationVelocity.x * dt;
+                photoGroup.rotation.x += rotationVelocity.y * dt;
+                
+                const damping = isMouseDown ? 0.95 : 0.97;
+                rotationVelocity.x *= damping;
+                rotationVelocity.y *= damping;
+            } else {
+                // Rotazione automatica controllata dalla velocità
+                photoGroup.rotation.y += autoRotate * dt;
+            }
+
+            // Zoom controllato smooth
+            currentZoom = THREE.MathUtils.lerp(currentZoom, zoomLevel, 0.1);
+            camera.position.z = currentZoom;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // === MEDIAPIPE HANDS ===
+        // Declared here but used early in loadImagesFromFolder — must be before first call
+        const videoElement = document.getElementById("video");
+        const canvasElement = document.getElementById("output");
+        const canvasCtx = canvasElement.getContext("2d");
+
+        function updateStatus(text) {
+            status.textContent = text;
+        }
+
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+
+        hands.setOptions({
+            maxNumHands: 2,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.7,
+            minTrackingConfidence: 0.7
+        });
+
+        hands.onResults(onResults);
+
+        const cameraMP = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({ image: videoElement });
+            },
+            width: 640,
+            height: 480
+        });
+
+        cameraMP.start().catch(() => {
+            mouseMode = true;
+            const toggleBtn = document.getElementById('toggleMode');
+            if (toggleBtn) toggleBtn.textContent = 'Switch to Hand Mode';
+            updateStatus('🖱️ Camera non disponibile — Mouse mode attivo');
+        });
+
+        function onResults(results) {
+            canvasElement.width = videoElement.videoWidth;
+            canvasElement.height = videoElement.videoHeight;
+
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.translate(canvasElement.width, 0);
+            canvasCtx.scale(-1, 1);
+
+            if (results.image) {
+                canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+            }
+
+            const handsLandmarks = results.multiHandLandmarks || [];
+
+            if (handsLandmarks.length > 0) {
+                updateStatus(`✋ ${handsLandmarks.length} mano/i rilevata/e`);
+
+                // Disegna le mani
+                if (results.multiHandLandmarks) {
+                    for (const landmarks of results.multiHandLandmarks) {
+                        drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {
+                            color: '#00FF00',
+                            lineWidth: 2
+                        });
+                        drawLandmarks(canvasCtx, landmarks, {
+                            color: '#FF0000',
+                            lineWidth: 1,
+                            radius: 3
+                        });
+                    }
+                }
+
+                // Mano 1: controllo velocità di rotazione
+                const hand1 = handsLandmarks[0];
+                const thumb = hand1[4];
+                const index = hand1[8];
+                
+                // Calcola la distanza tra pollice e indice per velocità
+                const dist1 = Math.sqrt(
+                    Math.pow(thumb.x - index.x, 2) +
+                    Math.pow(thumb.y - index.y, 2)
+                );
+                
+                // Mappa distanza [0.02..0.3] → velocità [-2..2]
+                const normalizedDist = THREE.MathUtils.clamp(dist1, 0.02, 0.3);
+                rotationSpeed = ((normalizedDist - 0.02) / (0.3 - 0.02)) * 4 - 2;
+                autoRotate = rotationSpeed;
+                
+                // Mostra feedback
+                const rotDir = rotationSpeed > 0 ? '→' : '←';
+                const rotSpeedAbs = Math.abs(rotationSpeed).toFixed(1);
+                updateStatus(`✋ Rotazione: ${rotDir} ${rotSpeedAbs}x | Zoom: ${zoomLevel.toFixed(0)}`);
+
+                // Mano 2: controllo zoom
+                if (handsLandmarks.length > 1) {
+                    const hand2 = handsLandmarks[1];
+                    const thumb2 = hand2[4];
+                    const index2 = hand2[8];
+                    
+                    const dist2 = Math.sqrt(
+                        Math.pow(thumb2.x - index2.x, 2) +
+                        Math.pow(thumb2.y - index2.y, 2)
+                    );
+                    
+                    // Mappa distanza [0.02..0.3] → zoom [5..50]
+                    const normalizedDist2 = THREE.MathUtils.clamp(dist2, 0.02, 0.3);
+                    zoomLevel = 5 + ((normalizedDist2 - 0.02) / (0.3 - 0.02)) * (50 - 5);
+                    
+                    updateStatus(`✋ Rotazione: ${rotDir} ${rotSpeedAbs}x | Zoom: ${zoomLevel.toFixed(0)}`);
+                }
+            } else {
+                updateStatus("🤚 Nessuna mano rilevata");
+                autoRotate = autoRotate * 0.95; // Rallenta gradualmente
+                // Mantieni lo zoom corrente
+            }
+
+            canvasCtx.restore();
+        }
+
+        window.lastLayoutChange = 0;
+
+        function selectPanel(panel) {
+            if (selectedPanel && selectedPanel !== panel) {
+                selectedPanel.userData.isSelected = false;
+            }
+            
+            selectedPanel = panel;
+            selectedPanel.userData.isSelected = true;
+            
+            if (panel.userData) {
+                showMetadata(panel.userData);
+            }
+        }
+
+        function deselectPanel() {
+            if (selectedPanel) {
+                selectedPanel.userData.isSelected = false;
+                selectedPanel = null;
+            }
+            hideMetadata();
+        }
+
+        function showMetadata(imageData) {
+            const panel = document.getElementById('metadataPanel');
+            const content = document.getElementById('metadataContent');
+            
+            let html = '<h3 style="margin-top:0;">Info Immagine</h3>';
+            
+            if (imageData && imageData.imageName) {
+                html += `<div class="metadata-row">
+                    <div class="metadata-label">Nome File</div>
+                    <div class="metadata-value">${imageData.imageName}</div>
+                </div>`;
+            }
+            
+            content.innerHTML = html;
+            panel.classList.add('visible');
+        }
+
+        function hideMetadata() {
+            const panel = document.getElementById('metadataPanel');
+            panel.classList.remove('visible');
+        }
+
+        // === CONTROLLI MOUSE ===
+        renderer.domElement.addEventListener('mousedown', (e) => {
+            if (mouseMode) {
+                isMouseDown = true;
+                mouseLastX = e.clientX;
+                mouseLastY = e.clientY;
+            }
+        });
+
+        renderer.domElement.addEventListener('mouseup', () => {
+            if (mouseMode) {
+                isMouseDown = false;
+            }
+        });
+
+        renderer.domElement.addEventListener('mousemove', (e) => {
+            if (mouseMode && isMouseDown) {
+                const deltaX = e.clientX - mouseLastX;
+                const deltaY = e.clientY - mouseLastY;
+                
+                rotationVelocity.x = deltaX * 0.01;
+                rotationVelocity.y = deltaY * 0.01;
+                
+                mouseLastX = e.clientX;
+                mouseLastY = e.clientY;
+            }
+        });
+
+        renderer.domElement.addEventListener('wheel', (e) => {
+            if (mouseMode) {
+                e.preventDefault();
+                const zoomSpeed = 0.1;
+                const delta = e.deltaY * zoomSpeed;
+                currentZoom = THREE.MathUtils.clamp(currentZoom + delta, 5, 50);
+                camera.position.z = currentZoom;
+            }
+        }, { passive: false });
+
+        renderer.domElement.addEventListener('click', (e) => {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(panels);
+            
+            if (intersects.length > 0) {
+                selectPanel(intersects[0].object);
+            } else {
+                deselectPanel();
+            }
+        });
+
+        // === EVENT LISTENERS ===
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const buttons = document.querySelectorAll('.layout-btn');
+            buttons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const layoutIndex = parseInt(btn.dataset.layout);
+                    currentLayoutIndex = layoutIndex;
+                    layouts[layoutIndex].func();
+                    
+                    buttons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    updateStatus(`📐 Layout: ${layouts[layoutIndex].name.toUpperCase()}`);
+                });
+            });
+            
+            buttons[0].classList.add('active');
+
+            const toggleBtn = document.getElementById('toggleMode');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    mouseMode = !mouseMode;
+                    toggleBtn.textContent = mouseMode ? 'Switch to Hand Mode' : 'Switch to Mouse Mode';
+                    updateStatus(mouseMode ? '🖱️ Mouse mode active' : '✋ Hand tracking active');
+                });
+            }
+
+            const closeMetadataBtn = document.querySelector('#metadataPanel .close-btn');
+            if (closeMetadataBtn) {
+                closeMetadataBtn.addEventListener('click', () => {
+                    deselectPanel();
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -279,7 +279,7 @@
                                     font-family: 'SFMono-Regular', Consolas, monospace;
                                     font-size: 12px;
                                     cursor: pointer;">
-                            Spaziale
+                            Visuale
                         </button>
                         <button id="timeViewButton" 
                                 onclick="window.location.href='Tempo.html'" 
@@ -292,6 +292,18 @@
                                     font-size: 12px;
                                     cursor: pointer;">
                             Temporale
+                        </button>
+                        <button id="testViewButton" 
+                                onclick="switchToTestView()" 
+                                style="
+                                    background: transparent;
+                                    color: #ddd;
+                                    border: none;
+                                    padding: 1px 2px;
+                                    font-family: 'SFMono-Regular', Consolas, monospace;
+                                    font-size: 12px;
+                                    cursor: pointer;">
+                            Test
                         </button>
                     </div>
                 </div>
@@ -373,12 +385,17 @@
         
         const spatialBtn = document.getElementById('spatialViewButton');
         const timeBtn = document.getElementById('timeViewButton');
+        const testBtn = document.getElementById('testViewButton');
         
         // Aggiorna stili bottoni
         spatialBtn.style.background = '#fff';
         spatialBtn.style.color = '#000';
         timeBtn.style.background = 'transparent';
         timeBtn.style.color = '#ddd';
+        if (testBtn) {
+            testBtn.style.background = 'transparent';
+            testBtn.style.color = '#ddd';
+        }
         
         // Cambia la visualizzazione
         currentView = 'spatial';
@@ -390,16 +407,26 @@
         
         const spatialBtn = document.getElementById('spatialViewButton');
         const timeBtn = document.getElementById('timeViewButton');
+        const testBtn = document.getElementById('testViewButton');
         
         // Aggiorna stili bottoni
         timeBtn.style.background = '#fff';
         timeBtn.style.color = '#000';
         spatialBtn.style.background = 'transparent';
         spatialBtn.style.color = '#ddd';
+        if (testBtn) {
+            testBtn.style.background = 'transparent';
+            testBtn.style.color = '#ddd';
+        }
         
         // Cambia la visualizzazione
         currentView = 'temporal';
         setupTemporalView();
+    }
+
+    function switchToTestView() {
+        // Reindirizza alla pagina Test.html
+        window.location.href = 'Test.html';
     }
 
    
