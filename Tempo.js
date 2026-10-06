@@ -1142,22 +1142,6 @@ function disattivaFiltri() {
     oraDisplay.html(`Tutte le immagini | ${immagini.length} immagini`);
 }
 
-// Aggiungi questa funzione all'inizio del file
 function getBasePath() {
-  // Controlla se siamo su GitHub Pages
-  const isGitHubPages = window.location.hostname.includes('github.io');
-  
-  if (isGitHubPages) {
-    // Estrai il nome del repository dall'URL
-    const pathParts = window.location.pathname.split('/');
-    // Se il repository è nella root, non aggiungere nulla
-    if (pathParts.length <= 2) {
-      return '';
-    }
-    // Altrimenti, il secondo elemento è il nome del repository
-    return pathParts[1] + '/';
-  }
-  
-  // In locale, non serve alcun prefisso
   return '';
 }
