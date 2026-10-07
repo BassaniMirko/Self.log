@@ -346,7 +346,6 @@ padding: 0px 2px;
   position: relative;
   z-index: 10000 !important; /* Valore molto alto per sicurezza */
   padding: 10px;
-  background-color: #aaaaaa;
   border-radius: 5px;
   margin-bottom: 15px;
   pointer-events: auto !important; /* Forza la cattura degli eventi */
@@ -690,8 +689,8 @@ canvas.p5Canvas {
         .container {
             top: 12px;
             left: 12px;
-            width: calc(100vw - 24px);
-            max-width: 350px;
+            width: 100vw;
+            max-width: calc(100vw - 24px);
             max-height: 60vh;
             overflow-y: auto;
             box-sizing: border-box;
