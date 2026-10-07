@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
     <title>Self.log() - Test View</title>
     <style>
         body {
@@ -154,6 +155,39 @@
 
         .layout-btn {
             margin: 2px;
+        }
+
+        /* === Responsive mobile (<=768px) — non tocca il layout desktop === */
+        @media (max-width: 768px) {
+            .container {
+                top: 12px;
+                left: 12px;
+                width: calc(100vw - 24px);
+                max-width: 350px;
+                max-height: 55vh;
+                overflow-y: auto;
+                box-sizing: border-box;
+            }
+
+            #videoContainer {
+                bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+                right: 12px;
+                width: 120px;
+                height: 90px;
+            }
+
+            .footer {
+                left: 12px;
+                bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+                width: calc(100vw - 24px);
+                max-width: 350px;
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            canvas {
+                touch-action: none;
+            }
         }
     </style>
 </head>

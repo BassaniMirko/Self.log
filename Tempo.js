@@ -71,9 +71,10 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight, WEBGL);
+  const cnv = createCanvas(windowWidth, windowHeight, WEBGL);
   textureMode(NORMAL);
   noStroke();
+  setupTouchControlsTempo(cnv.elt);
 
   const anni = new Set();
   
@@ -1120,6 +1121,99 @@ function mouseWheel(event) {
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
 }
+
+// === Controlli touch mobile: 1 dito = pan, 2 dita = pinch-to-zoom ===
+// Usa Pointer Events e riusa le stesse variabili/limiti/easing dello zoom
+// desktop (targetZoom, constrain(...,0.1,10), lerp in draw()).
+const activeTouchPointersTempo = new Map();
+let isTouchPanningTempo = false;
+let touchPanLastX = 0, touchPanLastY = 0;
+let pinchStartDistTempo = 0;
+let pinchStartZoomTempo = 1;
+
+function isTouchOverUI(x, y) {
+  return y < 200 && x < 400;
+}
+
+function setupTouchControlsTempo(canvasElt) {
+  // Disabilita i gesti nativi (pinch/scroll) solo sul canvas, senza toccare slider/bottoni UI.
+  canvasElt.style.touchAction = 'none';
+
+  canvasElt.addEventListener('pointerdown', onTouchPointerDownTempo, { passive: false });
+  canvasElt.addEventListener('pointermove', onTouchPointerMoveTempo, { passive: false });
+  canvasElt.addEventListener('pointerup', onTouchPointerUpTempo, { passive: false });
+  canvasElt.addEventListener('pointercancel', onTouchPointerUpTempo, { passive: false });
+  canvasElt.addEventListener('pointerleave', onTouchPointerUpTempo, { passive: false });
+}
+
+function startTouchPanTempo(pointerId) {
+  const p = activeTouchPointersTempo.get(pointerId);
+  isTouchPanningTempo = true;
+  touchPanLastX = p.x;
+  touchPanLastY = p.y;
+}
+
+function onTouchPointerDownTempo(e) {
+  if (e.pointerType === 'mouse') return; // non interferire con l'interazione desktop
+  if (isTouchOverUI(e.clientX, e.clientY)) return;
+  e.preventDefault();
+  if (e.target.setPointerCapture) e.target.setPointerCapture(e.pointerId);
+  activeTouchPointersTempo.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (activeTouchPointersTempo.size === 1) {
+    document.body.style.cursor = 'grabbing';
+    startTouchPanTempo(e.pointerId);
+  } else if (activeTouchPointersTempo.size === 2) {
+    isTouchPanningTempo = false;
+    const pts = Array.from(activeTouchPointersTempo.values());
+    pinchStartDistTempo = dist(pts[0].x, pts[0].y, pts[1].x, pts[1].y);
+    pinchStartZoomTempo = targetZoom;
+  }
+}
+
+function onTouchPointerMoveTempo(e) {
+  if (e.pointerType === 'mouse') return;
+  if (!activeTouchPointersTempo.has(e.pointerId)) return;
+  e.preventDefault();
+  activeTouchPointersTempo.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (activeTouchPointersTempo.size === 1 && isTouchPanningTempo) {
+    const p = activeTouchPointersTempo.get(e.pointerId);
+    dragX += (p.x - touchPanLastX) / zoom;
+    dragY += (p.y - touchPanLastY) / zoom;
+    touchPanLastX = p.x;
+    touchPanLastY = p.y;
+  } else if (activeTouchPointersTempo.size === 2 && pinchStartDistTempo > 0) {
+    const pts = Array.from(activeTouchPointersTempo.values());
+    const newDist = dist(pts[0].x, pts[0].y, pts[1].x, pts[1].y);
+    const ratio = pinchStartDistTempo / newDist;
+    targetZoom = constrain(pinchStartZoomTempo * ratio, 0.1, 10);
+  }
+}
+
+function onTouchPointerUpTempo(e) {
+  if (e.pointerType === 'mouse') return;
+  activeTouchPointersTempo.delete(e.pointerId);
+
+  if (activeTouchPointersTempo.size === 1) {
+    // Torna al pan con il dito rimasto, ripartendo dalla posizione corrente.
+    const [remainingId] = activeTouchPointersTempo.keys();
+    startTouchPanTempo(remainingId);
+  } else {
+    isTouchPanningTempo = false;
+    pinchStartDistTempo = 0;
+  }
+
+  if (activeTouchPointersTempo.size === 0) {
+    document.body.style.cursor = 'grab';
+  }
+}
+
+// Impedisce a p5 di sintetizzare eventi mouse dai touch (evita doppia gestione
+// con i Pointer Events sopra), lasciando intatta l'interazione mouse desktop.
+function touchStarted() { return false; }
+function touchMoved() { return false; }
+function touchEnded() { return false; }
 
 function keyPressed() {
   if (key === '+') cella += 10;

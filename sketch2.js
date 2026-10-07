@@ -164,6 +164,7 @@ function setup() {
   perspective(PI / 6, width / height, 100, 30000);
   camera.setPosition(0, 0, 8000);
   offsetZ = -1200;
+  setupTouchControls(canvas.elt);
   if (!data || !data.length || !atlasImg || !atlasImg.width) return;
   animationStartTime = millis();
   centroidAnimation.isAnimating = true;
@@ -307,6 +308,94 @@ function mouseWheel(event) {
   targetY *= zoomRatio;
   return false;
 }
+
+// === Controlli touch mobile: 1 dito = pan, 2 dita = pinch-to-zoom ===
+// Usa Pointer Events (robusti su iOS/Android) e riusa le stesse variabili/limiti
+// dello zoom desktop (targetZoom, minZoom, maxZoom) con lo stesso easing in draw().
+const activeTouchPointers = new Map();
+let isTouchPanning = false;
+let touchPanStartX = 0, touchPanStartY = 0;
+let touchPanStartCameraX = 0, touchPanStartCameraY = 0;
+let pinchStartDist = 0;
+let pinchStartZoom = 8000;
+
+function setupTouchControls(canvasElt) {
+  // Disabilita i gesti nativi (pinch/scroll) solo sul canvas, senza toccare UI/slider/bottoni.
+  canvasElt.style.touchAction = 'none';
+
+  canvasElt.addEventListener('pointerdown', onTouchPointerDown, { passive: false });
+  canvasElt.addEventListener('pointermove', onTouchPointerMove, { passive: false });
+  canvasElt.addEventListener('pointerup', onTouchPointerUp, { passive: false });
+  canvasElt.addEventListener('pointercancel', onTouchPointerUp, { passive: false });
+  canvasElt.addEventListener('pointerleave', onTouchPointerUp, { passive: false });
+}
+
+function startTouchPan(pointerId) {
+  const p = activeTouchPointers.get(pointerId);
+  isTouchPanning = true;
+  touchPanStartX = p.x;
+  touchPanStartY = p.y;
+  touchPanStartCameraX = currentX;
+  touchPanStartCameraY = currentY;
+}
+
+function onTouchPointerDown(e) {
+  if (e.pointerType === 'mouse') return; // non interferire con l'interazione desktop
+  e.preventDefault();
+  if (e.target.setPointerCapture) e.target.setPointerCapture(e.pointerId);
+  activeTouchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (activeTouchPointers.size === 1) {
+    startTouchPan(e.pointerId);
+  } else if (activeTouchPointers.size === 2) {
+    isTouchPanning = false;
+    const pts = Array.from(activeTouchPointers.values());
+    pinchStartDist = dist(pts[0].x, pts[0].y, pts[1].x, pts[1].y);
+    pinchStartZoom = targetZoom;
+  }
+}
+
+function onTouchPointerMove(e) {
+  if (e.pointerType === 'mouse') return;
+  if (!activeTouchPointers.has(e.pointerId)) return;
+  e.preventDefault();
+  activeTouchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (activeTouchPointers.size === 1 && isTouchPanning) {
+    const p = activeTouchPointers.get(e.pointerId);
+    const dx = p.x - touchPanStartX;
+    const dy = p.y - touchPanStartY;
+    const moveScale = map(zoom, minZoom, maxZoom, 1, 4);
+    const maxOffset = zoom * 0.5;
+    targetY = constrain(touchPanStartCameraY - dy * moveScale, -maxOffset, maxOffset);
+    targetX = constrain(touchPanStartCameraX + dx * moveScale, -maxOffset, maxOffset);
+  } else if (activeTouchPointers.size === 2 && pinchStartDist > 0) {
+    const pts = Array.from(activeTouchPointers.values());
+    const newDist = dist(pts[0].x, pts[0].y, pts[1].x, pts[1].y);
+    const ratio = pinchStartDist / newDist;
+    targetZoom = constrain(pinchStartZoom * ratio, minZoom, maxZoom);
+  }
+}
+
+function onTouchPointerUp(e) {
+  if (e.pointerType === 'mouse') return;
+  activeTouchPointers.delete(e.pointerId);
+
+  if (activeTouchPointers.size === 1) {
+    // Torna al pan con il dito rimasto, ripartendo dalla posizione corrente.
+    const [remainingId] = activeTouchPointers.keys();
+    startTouchPan(remainingId);
+  } else {
+    isTouchPanning = false;
+    pinchStartDist = 0;
+  }
+}
+
+// Impedisce a p5 di sintetizzare eventi mouse dai touch (evita doppia gestione
+// con i Pointer Events sopra), lasciando intatta l'interazione mouse desktop.
+function touchStarted() { return false; }
+function touchMoved() { return false; }
+function touchEnded() { return false; }
 
 function setupFilters() {
     // ...existing code...

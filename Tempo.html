@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
     <title>self.log()</title>
     <style>
         body {
@@ -682,6 +683,41 @@ canvas.p5Canvas {
         color: #000 !important;
         border: none;
         font-weight: normal;
+    }
+
+    /* === Responsive mobile (<=768px) — non tocca il layout desktop === */
+    @media (max-width: 768px) {
+        .container {
+            top: 12px;
+            left: 12px;
+            width: calc(100vw - 24px);
+            max-width: 350px;
+            max-height: 60vh;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .filter-container {
+            flex-wrap: wrap;
+        }
+
+        #canvasContainer {
+            width: 100vw !important;
+            height: 100vh !important;
+            right: 0;
+            left: 0;
+            touch-action: none;
+        }
+
+        .footer {
+            left: 12px;
+            bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+            width: calc(100vw - 24px);
+            max-width: 350px;
+            flex-direction: column;
+            gap: 4px;
+            box-sizing: border-box;
+        }
     }
     </style>
 </head>

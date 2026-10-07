@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
   <title>self.log()</title>
   <style>
     body {
@@ -223,6 +224,39 @@ s
     #dots::after {
       content: ".";
       animation: dotAnimation 1.5s infinite;
+    }
+
+    /* === Responsive mobile (<=768px) — non tocca il layout desktop === */
+    @media (max-width: 768px) {
+      .container {
+        top: 12px;
+        left: 12px;
+        width: calc(100vw - 24px);
+        max-width: 350px;
+        box-sizing: border-box;
+      }
+
+      #visualizzazione3D,
+      #galleria {
+        width: 100vw;
+        height: 100vh;
+      }
+
+      #canvas3d {
+        width: 100% !important;
+        height: 100% !important;
+        touch-action: none;
+      }
+
+      .footer {
+        left: 12px;
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+        width: calc(100vw - 24px);
+        max-width: 350px;
+        flex-direction: column;
+        gap: 4px;
+        box-sizing: border-box;
+      }
     }
   </style>
 </head>
