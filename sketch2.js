@@ -312,12 +312,22 @@ function mouseWheel(event) {
 // === Controlli touch mobile: 1 dito = pan, 2 dita = pinch-to-zoom ===
 // Usa Pointer Events (robusti su iOS/Android) e riusa le stesse variabili/limiti
 // dello zoom desktop (targetZoom, minZoom, maxZoom) con lo stesso easing in draw().
+// Non vengono definiti i callback p5 touchStarted/touchMoved/touchEnded: su mobile
+// p5 li lega a livello di documento e un `return false` globale blocca anche i tap
+// su bottoni/filtri/slider (niente click sintetizzato). I Pointer Events qui sotto
+// sono scoped al solo canvas e ignorano esplicitamente i touch iniziati sulla UI.
 const activeTouchPointers = new Map();
 let isTouchPanning = false;
 let touchPanStartX = 0, touchPanStartY = 0;
 let touchPanStartCameraX = 0, touchPanStartCameraY = 0;
 let pinchStartDist = 0;
 let pinchStartZoom = 8000;
+
+const UI_SELECTOR = '#filter, #classSelector, button, input, a, .container, .footer';
+
+function isUITarget(target) {
+  return !!(target && target.closest && target.closest(UI_SELECTOR));
+}
 
 function setupTouchControls(canvasElt) {
   // Disabilita i gesti nativi (pinch/scroll) solo sul canvas, senza toccare UI/slider/bottoni.
@@ -341,6 +351,7 @@ function startTouchPan(pointerId) {
 
 function onTouchPointerDown(e) {
   if (e.pointerType === 'mouse') return; // non interferire con l'interazione desktop
+  if (isUITarget(e.target)) return; // lascia che il tap su UI diventi un click normale
   e.preventDefault();
   if (e.target.setPointerCapture) e.target.setPointerCapture(e.pointerId);
   activeTouchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -379,6 +390,7 @@ function onTouchPointerMove(e) {
 
 function onTouchPointerUp(e) {
   if (e.pointerType === 'mouse') return;
+  if (!activeTouchPointers.has(e.pointerId)) return; // il touch non era gestito dal canvas (es. UI)
   activeTouchPointers.delete(e.pointerId);
 
   if (activeTouchPointers.size === 1) {
@@ -390,12 +402,6 @@ function onTouchPointerUp(e) {
     pinchStartDist = 0;
   }
 }
-
-// Impedisce a p5 di sintetizzare eventi mouse dai touch (evita doppia gestione
-// con i Pointer Events sopra), lasciando intatta l'interazione mouse desktop.
-function touchStarted() { return false; }
-function touchMoved() { return false; }
-function touchEnded() { return false; }
 
 function setupFilters() {
     // ...existing code...

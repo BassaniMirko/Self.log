@@ -181,6 +181,14 @@
             height: 100%;
         }
 
+        /* La UI deve sempre ricevere i tap/click ed essere sopra il canvas */
+        .container, #filter, #classSelector, .footer, button, input, a {
+            pointer-events: auto;
+        }
+        .container, .footer {
+            z-index: 10;
+        }
+
         #spatialViewButton, #timeViewButton {
             transition: all 0.2s ease;
         }
@@ -257,15 +265,15 @@
             .container {
                 top: 12px;
                 left: 12px;
-                width: calc(100vw - 24px);
-                max-width: 350px;
-                max-height: 60vh;
+                width:100vw;
+                max-width: calc(100vw - 24px);
+                max-height: 100vh;
                 overflow-y: auto;
                 box-sizing: border-box;
             }
 
             #classSelector {
-                max-height: 240px;
+                max-height: 100%;
                 max-width: 100%;
             }
 

@@ -1125,14 +1125,20 @@ function windowResized() {
 // === Controlli touch mobile: 1 dito = pan, 2 dita = pinch-to-zoom ===
 // Usa Pointer Events e riusa le stesse variabili/limiti/easing dello zoom
 // desktop (targetZoom, constrain(...,0.1,10), lerp in draw()).
+// Non vengono definiti i callback p5 touchStarted/touchMoved/touchEnded: su mobile
+// p5 li lega a livello di documento e un `return false` globale blocca anche i tap
+// su bottoni/filtri/slider (niente click sintetizzato). I Pointer Events qui sotto
+// sono scoped al solo canvas e ignorano esplicitamente i touch iniziati sulla UI.
 const activeTouchPointersTempo = new Map();
 let isTouchPanningTempo = false;
 let touchPanLastX = 0, touchPanLastY = 0;
 let pinchStartDistTempo = 0;
 let pinchStartZoomTempo = 1;
 
-function isTouchOverUI(x, y) {
-  return y < 200 && x < 400;
+const UI_SELECTOR_TEMPO = '#filter, #classSelector, button, input, a, .container, .footer, #slider-container, .categoria-slider';
+
+function isUITargetTempo(target) {
+  return !!(target && target.closest && target.closest(UI_SELECTOR_TEMPO));
 }
 
 function setupTouchControlsTempo(canvasElt) {
@@ -1155,7 +1161,7 @@ function startTouchPanTempo(pointerId) {
 
 function onTouchPointerDownTempo(e) {
   if (e.pointerType === 'mouse') return; // non interferire con l'interazione desktop
-  if (isTouchOverUI(e.clientX, e.clientY)) return;
+  if (isUITargetTempo(e.target)) return; // lascia che il tap su UI/slider diventi un click normale
   e.preventDefault();
   if (e.target.setPointerCapture) e.target.setPointerCapture(e.pointerId);
   activeTouchPointersTempo.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -1193,6 +1199,7 @@ function onTouchPointerMoveTempo(e) {
 
 function onTouchPointerUpTempo(e) {
   if (e.pointerType === 'mouse') return;
+  if (!activeTouchPointersTempo.has(e.pointerId)) return; // il touch non era gestito dal canvas (es. UI)
   activeTouchPointersTempo.delete(e.pointerId);
 
   if (activeTouchPointersTempo.size === 1) {
@@ -1208,12 +1215,6 @@ function onTouchPointerUpTempo(e) {
     document.body.style.cursor = 'grab';
   }
 }
-
-// Impedisce a p5 di sintetizzare eventi mouse dai touch (evita doppia gestione
-// con i Pointer Events sopra), lasciando intatta l'interazione mouse desktop.
-function touchStarted() { return false; }
-function touchMoved() { return false; }
-function touchEnded() { return false; }
 
 function keyPressed() {
   if (key === '+') cella += 10;

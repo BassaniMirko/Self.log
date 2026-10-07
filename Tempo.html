@@ -130,6 +130,14 @@
             z-index: 1; /* Canvas ha z-index inferiore */
         }
 
+        /* La UI deve sempre ricevere i tap/click ed essere sopra il canvas */
+        .container, #filter, #classSelector, .footer, button, input, a {
+            pointer-events: auto;
+        }
+        .container, .footer {
+            z-index: 10000;
+        }
+
         #spatialViewButton, #timeViewButton {
             transition: all 0.2s ease;
         }
