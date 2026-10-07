@@ -29,10 +29,12 @@ let offsetY = -100;
 let offsetZ = -300;
 
 let zoom = 8000;
+let targetZoom = 8000;
 const minZoom = 1000;
 const maxZoom = 30000;
 const zoomSpeed = 0.001;
 const lerpFactor = 0.05;
+const zoomLerpFactor = 0.1;
 
 let targetX = 0, targetY = 0, targetZ = 0;
 let currentX = 0, currentY = 0, currentZ = 0;
@@ -186,6 +188,7 @@ function drawSpatialView() {
 
   currentX = lerp(currentX, targetX, lerpFactor);
   currentY = lerp(currentY, targetY, lerpFactor);
+  zoom = lerp(zoom, targetZoom, zoomLerpFactor);
 
   const camX = centroid.x + currentX;
   const camY = centroid.y + currentY;
@@ -297,9 +300,9 @@ function mouseDragged() {
 function mouseWheel(event) {
   event.preventDefault();
   const zoomAmount = event.delta * zoomSpeed;
-  const oldZoom = zoom;
-  zoom = constrain(zoom * (1 + zoomAmount), minZoom, maxZoom);
-  const zoomRatio = zoom / oldZoom;
+  const oldZoom = targetZoom;
+  targetZoom = constrain(targetZoom * (1 + zoomAmount), minZoom, maxZoom);
+  const zoomRatio = targetZoom / oldZoom;
   currentY *= zoomRatio;
   targetY *= zoomRatio;
   return false;
