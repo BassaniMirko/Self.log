@@ -272,7 +272,12 @@ function billboard(x, y, z) {
   rotateX(-atan2(dir.y, sqrt(dir.x * dir.x + dir.z * dir.z)));
 }
 
-function mousePressed() {
+function mousePressed(event) {
+  // Il touch è gestito interamente dai listener custom in capture phase (vedi sotto):
+  // qui ignoriamo gli eventi pointerType==='touch' per non impostare isDragging anche
+  // quando il dito tocca un bottone/filtro (p5 invoca questo callback per OGNI pointerdown
+  // della pagina, bubbled fino a window, non solo quelli sul canvas).
+  if (event && event.pointerType === 'touch') return;
   if (mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height) {
     isDragging = true;
     dragStartX = mouseX;
@@ -282,11 +287,13 @@ function mousePressed() {
   }
 }
 
-function mouseReleased() {
+function mouseReleased(event) {
+  if (event && event.pointerType === 'touch') return;
   isDragging = false;
 }
 
-function mouseDragged() {
+function mouseDragged(event) {
+  if (event && event.pointerType === 'touch') return;
   if (isDragging) {
     const dx = mouseX - dragStartX;
     const dy = mouseY - dragStartY;
@@ -310,14 +317,16 @@ function mouseWheel(event) {
 }
 
 // === Controlli touch mobile: 1 dito = pan, 2 dita = pinch-to-zoom ===
-// Usa Pointer Events (robusti su iOS/Android) e riusa le stesse variabili/limiti
-// dello zoom desktop (targetZoom, minZoom, maxZoom) con lo stesso easing in draw().
-// Non vengono definiti i callback p5 touchStarted/touchMoved/touchEnded: su mobile
-// p5 li lega a livello di documento e un `return false` globale blocca anche i tap
-// su bottoni/filtri/slider (niente click sintetizzato). I Pointer Events qui sotto
-// sono scoped al solo canvas e ignorano esplicitamente i touch iniziati sulla UI.
+// Riusa le stesse variabili/limiti dello zoom desktop (targetZoom, minZoom, maxZoom)
+// con lo stesso easing in draw(). I listener sono registrati su `window` in CAPTURE
+// phase (non solo sul canvas): questo permette di rilevare il SECONDO dito anche se
+// parte sopra #classSelector/.container, necessario per riconoscere il pinch anche
+// quando la UI copre parte dello schermo. Per il tap singolo su UI NON chiamiamo mai
+// preventDefault(), quindi il click nativo prosegue invariato. Nessun callback p5
+// touchStarted/touchMoved/touchEnded viene definito (bloccherebbe i click a livello globale).
 const activeTouchPointers = new Map();
 let isTouchPanning = false;
+let touchPanPointerId = null;
 let touchPanStartX = 0, touchPanStartY = 0;
 let touchPanStartCameraX = 0, touchPanStartCameraY = 0;
 let pinchStartDist = 0;
@@ -330,19 +339,20 @@ function isUITarget(target) {
 }
 
 function setupTouchControls(canvasElt) {
-  // Disabilita i gesti nativi (pinch/scroll) solo sul canvas, senza toccare UI/slider/bottoni.
+  // Blocca i gesti nativi (pinch/scroll del browser) solo sul canvas; la UI resta
+  // scrollabile/tappabile normalmente (nessun touch-action:none sulla UI).
   canvasElt.style.touchAction = 'none';
 
-  canvasElt.addEventListener('pointerdown', onTouchPointerDown, { passive: false });
-  canvasElt.addEventListener('pointermove', onTouchPointerMove, { passive: false });
-  canvasElt.addEventListener('pointerup', onTouchPointerUp, { passive: false });
-  canvasElt.addEventListener('pointercancel', onTouchPointerUp, { passive: false });
-  canvasElt.addEventListener('pointerleave', onTouchPointerUp, { passive: false });
+  window.addEventListener('pointerdown', onTouchPointerDown, { passive: false, capture: true });
+  window.addEventListener('pointermove', onTouchPointerMove, { passive: false, capture: true });
+  window.addEventListener('pointerup', onTouchPointerUp, { passive: false, capture: true });
+  window.addEventListener('pointercancel', onTouchPointerUp, { passive: false, capture: true });
 }
 
 function startTouchPan(pointerId) {
   const p = activeTouchPointers.get(pointerId);
   isTouchPanning = true;
+  touchPanPointerId = pointerId;
   touchPanStartX = p.x;
   touchPanStartY = p.y;
   touchPanStartCameraX = currentX;
@@ -350,16 +360,25 @@ function startTouchPan(pointerId) {
 }
 
 function onTouchPointerDown(e) {
-  if (e.pointerType === 'mouse') return; // non interferire con l'interazione desktop
-  if (isUITarget(e.target)) return; // lascia che il tap su UI diventi un click normale
-  e.preventDefault();
-  if (e.target.setPointerCapture) e.target.setPointerCapture(e.pointerId);
+  if (e.pointerType !== 'touch') return; // non interferire con mouse/pen desktop
+
   activeTouchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
   if (activeTouchPointers.size === 1) {
+    // Primo dito: se è sulla UI, nessun preventDefault, resta un tap/click normale.
+    if (isUITarget(e.target)) {
+      isTouchPanning = false;
+      touchPanPointerId = null;
+      return;
+    }
+    e.preventDefault();
     startTouchPan(e.pointerId);
   } else if (activeTouchPointers.size === 2) {
+    // Secondo dito: entra SEMPRE in pinch, anche se uno dei due tocchi è iniziato
+    // sopra #classSelector/.container, così la UI non "ruba" un touch al pinch.
+    e.preventDefault();
     isTouchPanning = false;
+    touchPanPointerId = null;
     const pts = Array.from(activeTouchPointers.values());
     pinchStartDist = dist(pts[0].x, pts[0].y, pts[1].x, pts[1].y);
     pinchStartZoom = targetZoom;
@@ -367,12 +386,18 @@ function onTouchPointerDown(e) {
 }
 
 function onTouchPointerMove(e) {
-  if (e.pointerType === 'mouse') return;
+  if (e.pointerType !== 'touch') return;
   if (!activeTouchPointers.has(e.pointerId)) return;
-  e.preventDefault();
   activeTouchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-  if (activeTouchPointers.size === 1 && isTouchPanning) {
+  if (activeTouchPointers.size === 2 && pinchStartDist > 0) {
+    e.preventDefault();
+    const pts = Array.from(activeTouchPointers.values());
+    const newDist = dist(pts[0].x, pts[0].y, pts[1].x, pts[1].y);
+    const ratio = pinchStartDist / newDist;
+    targetZoom = constrain(pinchStartZoom * ratio, minZoom, maxZoom);
+  } else if (activeTouchPointers.size === 1 && isTouchPanning && e.pointerId === touchPanPointerId) {
+    e.preventDefault();
     const p = activeTouchPointers.get(e.pointerId);
     const dx = p.x - touchPanStartX;
     const dy = p.y - touchPanStartY;
@@ -380,25 +405,22 @@ function onTouchPointerMove(e) {
     const maxOffset = zoom * 0.5;
     targetY = constrain(touchPanStartCameraY - dy * moveScale, -maxOffset, maxOffset);
     targetX = constrain(touchPanStartCameraX + dx * moveScale, -maxOffset, maxOffset);
-  } else if (activeTouchPointers.size === 2 && pinchStartDist > 0) {
-    const pts = Array.from(activeTouchPointers.values());
-    const newDist = dist(pts[0].x, pts[0].y, pts[1].x, pts[1].y);
-    const ratio = pinchStartDist / newDist;
-    targetZoom = constrain(pinchStartZoom * ratio, minZoom, maxZoom);
   }
 }
 
 function onTouchPointerUp(e) {
-  if (e.pointerType === 'mouse') return;
-  if (!activeTouchPointers.has(e.pointerId)) return; // il touch non era gestito dal canvas (es. UI)
+  if (e.pointerType !== 'touch') return;
+  if (!activeTouchPointers.has(e.pointerId)) return;
   activeTouchPointers.delete(e.pointerId);
 
   if (activeTouchPointers.size === 1) {
-    // Torna al pan con il dito rimasto, ripartendo dalla posizione corrente.
+    // Resta un dito dopo un pinch: riparte il pan dalla posizione corrente.
+    pinchStartDist = 0;
     const [remainingId] = activeTouchPointers.keys();
     startTouchPan(remainingId);
   } else {
     isTouchPanning = false;
+    touchPanPointerId = null;
     pinchStartDist = 0;
   }
 }
