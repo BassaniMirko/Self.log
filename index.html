@@ -157,8 +157,8 @@ s
     }
     .footer {
             position: fixed;
-            bottom: 20px;
-            left: 20px;
+            bottom: 12px;
+            left: 12px;
             width: 350px;
             background: #00000000;
             color: #aaa;
@@ -231,8 +231,8 @@ s
       .container {
         top: 12px;
         left: 12px;
-        width: calc(100vw - 24px);
-        max-width: 350px;
+        width: 100vw;
+        max-width: calc(100vw - 24px);
         box-sizing: border-box;
       }
 
@@ -248,15 +248,6 @@ s
         touch-action: none;
       }
 
-      .footer {
-        left: 12px;
-        bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-        width: calc(100vw - 24px);
-        max-width: 350px;
-        flex-direction: column;
-        gap: 4px;
-        box-sizing: border-box;
-      }
     }
   </style>
 </head>
