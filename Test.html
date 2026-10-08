@@ -253,7 +253,7 @@
     </div>
 
     <div id="videoContainer">
-        <video id="video" autoplay playsinline></video>
+        <video id="video" autoplay playsinline muted></video>
         <canvas id="output"></canvas>
     </div>
 
@@ -267,10 +267,10 @@
         <div class="footer-col">Andreas Gysin<br>Giovanni Profeta<br>CV 429 Interaction Design<br>SUPSI DACD Mendrisio</div>    
     </div>
 
-    <!-- MediaPipe Hands -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <!-- MediaPipe Hands (versioni pinnate: le build "latest" cambiano API e rompono il tracking) -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js" crossorigin="anonymous"></script>
 
     <!-- Three.js con importmap -->
     <script type="importmap">
@@ -344,28 +344,189 @@
         const imageFolder = 'assets/images_copia/';
         let imageFiles = [];
         const texLoader = new THREE.TextureLoader();
-        
-        // Lista di alcune immagini dalla cartella (useremo un subset)
+
+        // Elenco completo delle immagini presenti in assets/images_copia/
         const imageList = [
-            'img_0001.jpg', 'img_0140.jpg', 'img_0141.jpg', 'img_0150.jpg', 'img_0154.jpg',
-            'img_0170.jpg', 'img_0178.jpg', 'img_0218.jpg', 'img_0354.jpg', 'img_0376.jpg',
-            'img_0801.jpg', 'img_0912.jpg', 'img_1027.jpg', 'img_1054.jpg', 'img_1093.jpg',
-            'img_1169.jpg', 'img_1392.jpg', 'img_1584.jpg', 'img_1635.jpg', 'img_1727.jpg',
-            'img_1826.jpg', 'img_1887.jpg', 'img_1930.jpg', 'img_1956.jpg', 'img_2006.jpg',
-            'img_2148.jpg', 'img_2238.jpg', 'img_2350.jpg', 'img_3252.jpg', 'img_3553.jpg',
-            'img_3836.jpg', 'img_3972.jpg', 'img_4106.jpg', 'img_4215.jpg', 'img_4409.jpg',
-            'img_4537.jpg', 'img_4656.jpg', 'img_4740.jpg', 'img_4902.jpg', 'img_5038.jpg',
-            'img_5199.jpg', 'img_5332.jpg', 'img_5472.jpg', 'img_5618.jpg', 'img_5712.jpg',
-            'img_5816.jpg', 'img_5900.jpg', 'img_6008.jpg', 'img_6123.jpg', 'img_6193.jpg',
-            'img_6233.jpg', 'img_6434.jpg', 'img_6463.jpg', 'img_6525.jpg', 'img_6636.jpg',
-            'img_6729.jpg', 'img_6820.jpg', 'img_6856.jpg', 'img_6908.jpg', 'img_6999.jpg',
-            'img_7052.jpg', 'img_7110.jpg', 'img_7172.jpg', 'img_7224.jpg', 'img_7301.jpg',
-            'img_7388.jpg', 'img_7497.jpg', 'img_7539.jpg', 'img_7626.jpg', 'img_7660.jpg',
-            'img_7728.jpg', 'img_7869.jpg', 'img_7924.jpg', 'img_7974.jpg', 'img_8048.jpg',
-            'img_8122.jpg', 'img_8230.jpg', 'img_8345.jpg', 'img_8434.jpg', 'img_8537.jpg',
-            'img_8599.jpg', 'img_8650.jpg', 'img_8731.jpg', 'img_9019.jpg', 'img_9156.jpg',
-            'img_9234.jpg', 'img_9468.jpg', 'img_9706.jpg', 'img_9923.jpg', 'dsc_1390.jpg'
+            '0e995b33-bf27-45bd-80ac-4b4095dfcbe1.jpg', '171b2ad3-9604-4bf5-beeb-fe2e67bfe340.jpg',
+            '23b52cc7-30df-47c3-ba6f-98adcc27f60d.jpg', '5154e1af-d08f-4410-96d6-a6d6a0d744eb.jpg',
+            '7002dddf-7f33-481e-8a0d-eb34fcb041c2.jpg', '7552a4f2-19d0-4f7b-8208-36a03c3ac06b.jpg',
+            'alcw2171.jpg', 'ccb8225f-84e1-41cd-a18b-7a6552bfc0d1 2.jpg', 'ccb8225f-84e1-41cd-a18b-7a6552bfc0d1.jpg',
+            'ccmu6544.jpg', 'czig8164.jpg', 'djow9795.jpg', 'dsc_1390.jpg', 'dsc_1391.jpg', 'dvfc4281.jpg',
+            'e1b28e08-abc8-48af-ad58-489c665d84de.jpg', 'eiko9571.jpg', 'encj7795.jpg', 'face3.jpg',
+            'fc730dfb-97bb-4dc3-b23f-46f19bced988.jpg', 'ftrx4321.jpg', 'ggws2501.jpg', 'gtxh2860.jpg',
+            'hbyk5940 1.jpg', 'hbyk5940.jpg', 'ifut3484.jpg', 'iggu9945.jpg',
+            'img_0001.jpg', 'img_0140.jpg', 'img_0141.jpg', 'img_0150.jpg', 'img_0154.jpg', 'img_0155.jpg',
+            'img_0170.jpg', 'img_0171.jpg', 'img_0178.jpg', 'img_0184.jpg', 'img_0189.jpg', 'img_0218.jpg',
+            'img_0219.jpg', 'img_0220.jpg', 'img_0221.jpg', 'img_0222.jpg', 'img_0223.jpg', 'img_0224.jpg',
+            'img_0225.jpg', 'img_0226.jpg', 'img_0227.jpg', 'img_0231.jpg', 'img_0278.jpg', 'img_0354.jpg',
+            'img_0359.jpg', 'img_0376.jpg', 'img_0377.jpg', 'img_0378.jpg', 'img_0392.jpg', 'img_0393.jpg',
+            'img_0394.jpg', 'img_0395.jpg', 'img_0434.jpg', 'img_0581.jpg', 'img_0589.jpg', 'img_0590.jpg',
+            'img_0725.jpg', 'img_0726.jpg', 'img_0727.jpg', 'img_0728.jpg', 'img_0729.jpg', 'img_0730.jpg',
+            'img_0801.jpg', 'img_0802.jpg', 'img_0912.jpg', 'img_0915.jpg', 'img_0973.jpg', 'img_0995.jpg',
+            'img_0996.jpg', 'img_1008.jpg', 'img_1010.jpg', 'img_1014.jpg', 'img_1027.jpg', 'img_1028.jpg',
+            'img_1029.jpg', 'img_1030.jpg', 'img_1032.jpg', 'img_1033.jpg', 'img_1054.jpg', 'img_1055.jpg',
+            'img_1056.jpg', 'img_1057.jpg', 'img_1058.jpg', 'img_1059.jpg', 'img_1061.jpg', 'img_1074.jpg',
+            'img_1075.jpg', 'img_1076.jpg', 'img_1077.jpg', 'img_1081.jpg', 'img_1093.jpg', 'img_1094.jpg',
+            'img_1095.jpg', 'img_1096.jpg', 'img_1097.jpg', 'img_1099.jpg', 'img_1101.jpg', 'img_1102.jpg',
+            'img_1103.jpg', 'img_1104.jpg', 'img_1105.jpg', 'img_1106.jpg', 'img_1107.jpg', 'img_1108.jpg',
+            'img_1109.jpg', 'img_1112.jpg', 'img_1118.jpg', 'img_1127.jpg', 'img_1128.jpg', 'img_1131.jpg',
+            'img_1143.jpg', 'img_1169.jpg', 'img_1170.jpg', 'img_1171.jpg', 'img_1175.jpg', 'img_1176.jpg',
+            'img_1179.jpg', 'img_1180.jpg', 'img_1181.jpg', 'img_1182.jpg', 'img_1183.jpg', 'img_1184.jpg',
+            'img_1185.jpg', 'img_1187.jpg', 'img_1190.jpg', 'img_1191.jpg', 'img_1192.jpg', 'img_1193.jpg',
+            'img_1392.jpg', 'img_1398.jpg', 'img_1407.jpg', 'img_1430.jpg', 'img_1454.jpg', 'img_1460.jpg',
+            'img_1462.jpg', 'img_1476.jpg', 'img_1484.jpg', 'img_1492.jpg', 'img_1584.jpg', 'img_1585.jpg',
+            'img_1586.jpg', 'img_1587.jpg', 'img_1588.jpg', 'img_1601.jpg', 'img_1602.jpg', 'img_1603.jpg',
+            'img_1635.jpg', 'img_1636.jpg', 'img_1639.jpg', 'img_1640.jpg', 'img_1641.jpg', 'img_1642.jpg',
+            'img_1644.jpg', 'img_1645.jpg', 'img_1647.jpg', 'img_1648.jpg', 'img_1651.jpg', 'img_1652.jpg',
+            'img_1653.jpg', 'img_1662.jpg', 'img_1699.jpg', 'img_1705.jpg', 'img_1727.jpg', 'img_1728.jpg',
+            'img_1730.jpg', 'img_1731.jpg', 'img_1738.jpg', 'img_1739.jpg', 'img_1740.jpg', 'img_1741.jpg',
+            'img_1744.jpg', 'img_1745.jpg', 'img_1746.jpg', 'img_1749.jpg', 'img_1750.jpg', 'img_1764.jpg',
+            'img_1765.jpg', 'img_1770.jpg', 'img_1775.jpg', 'img_1776.jpg', 'img_1778.jpg', 'img_1779.jpg',
+            'img_1785.jpg', 'img_1786.jpg', 'img_1826 1.jpg', 'img_1826.jpg', 'img_1828 1.jpg', 'img_1828.jpg',
+            'img_1832.jpg', 'img_1833.jpg', 'img_1834.jpg', 'img_1835.jpg', 'img_1836.jpg', 'img_1837.jpg',
+            'img_1887.jpg', 'img_1888.jpg', 'img_1889.jpg', 'img_1890.jpg', 'img_1891.jpg', 'img_1892.jpg',
+            'img_1893.jpg', 'img_1894.jpg', 'img_1901.jpg', 'img_1902.jpg', 'img_1903.jpg', 'img_1904.jpg',
+            'img_1930.jpg', 'img_1931.jpg', 'img_1932.jpg', 'img_1933.jpg', 'img_1934.jpg', 'img_1935.jpg',
+            'img_1936.jpg', 'img_1937.jpg', 'img_1938.jpg', 'img_1956.jpg', 'img_1957.jpg', 'img_1958.jpg',
+            'img_1959.jpg', 'img_1960.jpg', 'img_1961.jpg', 'img_1963.jpg', 'img_1965.jpg', 'img_1982.jpg',
+            'img_1983.jpg', 'img_1984.jpg', 'img_1985.jpg', 'img_1986.jpg', 'img_2006.jpg', 'img_2014.jpg',
+            'img_2015.jpg', 'img_2066.jpg', 'img_2084.jpg', 'img_2090.jpg', 'img_2148.jpg', 'img_2153.jpg',
+            'img_2159.jpg', 'img_2160.jpg', 'img_2161.jpg', 'img_2168.jpg', 'img_2170.jpg', 'img_2198.jpg',
+            'img_2207.jpg', 'img_2212.jpg', 'img_2213.jpg', 'img_2238.jpg', 'img_2239.jpg', 'img_2240.jpg',
+            'img_2241.jpg', 'img_2259.jpg', 'img_2260.jpg', 'img_2261.jpg', 'img_2262.jpg', 'img_2266.jpg',
+            'img_2306.jpg', 'img_2307.jpg', 'img_2350.jpg', 'img_2351.jpg', 'img_2352.jpg', 'img_2356.jpg',
+            'img_2357.jpg', 'img_2358.jpg', 'img_2359.jpg', 'img_2360.jpg', 'img_2361.jpg', 'img_2362.jpg',
+            'img_2363.jpg', 'img_2364.jpg', 'img_2365.jpg', 'img_2366.jpg', 'img_2367.jpg', 'img_2370.jpg',
+            'img_3252.jpg', 'img_3254.jpg', 'img_3553.jpg', 'img_3557.jpg', 'img_3564.jpg', 'img_3621.jpg',
+            'img_3700.jpg', 'img_3701.jpg', 'img_3704.jpg', 'img_3836.jpg', 'img_3838.jpg', 'img_3851.jpg',
+            'img_3874.jpg', 'img_3878.jpg', 'img_3879.jpg', 'img_3880.jpg', 'img_3930.jpg', 'img_3944.jpg',
+            'img_3972.jpg', 'img_3973.jpg', 'img_3996.jpg', 'img_4002.jpg', 'img_4024.jpg', 'img_4037.jpg',
+            'img_4106.jpg', 'img_4107.jpg', 'img_4108.jpg', 'img_4109.jpg', 'img_4110.jpg', 'img_4111.jpg',
+            'img_4112.jpg', 'img_4113.jpg', 'img_4114.jpg', 'img_4115.jpg', 'img_4116.jpg', 'img_4117.jpg',
+            'img_4118.jpg', 'img_4119.jpg', 'img_4120.jpg', 'img_4133.jpg', 'img_4145.jpg', 'img_4189.jpg',
+            'img_4198.jpg', 'img_4215.jpg', 'img_4216 1.jpg', 'img_4216.jpg', 'img_4217.jpg', 'img_4220.jpg',
+            'img_4222.jpg', 'img_4224.jpg', 'img_4226.jpg', 'img_4227.jpg', 'img_4235 1.jpg', 'img_4235.jpg',
+            'img_4239.jpg', 'img_4243.jpg', 'img_4244.jpg', 'img_4248.jpg', 'img_4250.jpg', 'img_4251.jpg',
+            'img_4254.jpg', 'img_4259.jpg', 'img_4260.jpg', 'img_4262.jpg', 'img_4267.jpg', 'img_4270.jpg',
+            'img_4309.jpg', 'img_4409.jpg', 'img_4411.jpg', 'img_4412.jpg', 'img_4456.jpg', 'img_4514.jpg',
+            'img_4537.jpg', 'img_4538.jpg', 'img_4539.jpg', 'img_4541.jpg', 'img_4586.jpg', 'img_4607.jpg',
+            'img_4656.jpg', 'img_4664.jpg', 'img_4667.jpg', 'img_4696.jpg', 'img_4698.jpg', 'img_4740.jpg',
+            'img_4759.jpg', 'img_4787.jpg', 'img_4792.jpg', 'img_4804.jpg', 'img_4819.jpg', 'img_4824.jpg',
+            'img_4840.jpg', 'img_4847.jpg', 'img_4854.jpg', 'img_4859.jpg', 'img_4863.jpg', 'img_4873.jpg',
+            'img_4902.jpg', 'img_4906.jpg', 'img_4907.jpg', 'img_4908.jpg', 'img_4964.jpg', 'img_4970.jpg',
+            'img_4997.jpg', 'img_5007.jpg', 'img_5013.jpg', 'img_5038.jpg', 'img_5039.jpg', 'img_5043.jpg',
+            'img_5047.jpg', 'img_5058.jpg', 'img_5104.jpg', 'img_5116.jpg', 'img_5129.jpg', 'img_5130.jpg',
+            'img_5132.jpg', 'img_5139.jpg', 'img_5143.jpg', 'img_5150.jpg', 'img_5199.jpg', 'img_5201.jpg',
+            'img_5236.jpg', 'img_5249.jpg', 'img_5251.jpg', 'img_5332.jpg', 'img_5418.jpg', 'img_5427.jpg',
+            'img_5431.jpg', 'img_5437.jpg', 'img_5472.jpg', 'img_5473.jpg', 'img_5474.jpg', 'img_5475.jpg',
+            'img_5490.jpg', 'img_5491.jpg', 'img_5500.jpg', 'img_5503 1.jpg', 'img_5503.jpg', 'img_5504.jpg',
+            'img_5505.jpg', 'img_5516.jpg', 'img_5527.jpg', 'img_5529.jpg', 'img_5531.jpg', 'img_5618.jpg',
+            'img_5619.jpg', 'img_5620.jpg', 'img_5642.jpg', 'img_5644.jpg', 'img_5647.jpg', 'img_5669.jpg',
+            'img_5712.jpg', 'img_5726.jpg', 'img_5738.jpg', 'img_5748.jpg', 'img_5755.jpg', 'img_5816.jpg',
+            'img_5819.jpg', 'img_5820.jpg', 'img_5821.jpg', 'img_5823.jpg', 'img_5837.jpg', 'img_5855.jpg',
+            'img_5856.jpg', 'img_5860.jpg', 'img_5900.jpg', 'img_5932.jpg', 'img_5936.jpg', 'img_5942.jpg',
+            'img_5952.jpg', 'img_5957.jpg', 'img_5965.jpg', 'img_5966.jpg', 'img_5980.jpg', 'img_6008.jpg',
+            'img_6050.jpg', 'img_6061.jpg', 'img_6063.jpg', 'img_6068.jpg', 'img_6091.jpg', 'img_6093.jpg',
+            'img_6094.jpg', 'img_6100.jpg', 'img_6107.jpg', 'img_6123.jpg', 'img_6130.jpg', 'img_6134.jpg',
+            'img_6136.jpg', 'img_6156.jpg', 'img_6158.jpg', 'img_6159.jpg', 'img_6160.jpg', 'img_6169.jpg',
+            'img_6175.jpg', 'img_6193.jpg', 'img_6194.jpg', 'img_6197.jpg', 'img_6208.jpg', 'img_6209.jpg',
+            'img_6213.jpg', 'img_6214.jpg', 'img_6215.jpg', 'img_6216.jpg', 'img_6218.jpg', 'img_6224.jpg',
+            'img_6225.jpg', 'img_6229.jpg', 'img_6233 1.jpg', 'img_6233.jpg', 'img_6234.jpg', 'img_6235.jpg',
+            'img_6236 1.jpg', 'img_6236.jpg', 'img_6237.jpg', 'img_6238.jpg', 'img_6239 1.jpg', 'img_6239.jpg',
+            'img_6240 1.jpg', 'img_6240.jpg', 'img_6247.jpg', 'img_6252.jpg', 'img_6267.jpg', 'img_6291.jpg',
+            'img_6306.jpg', 'img_6312.jpg', 'img_6320.jpg', 'img_6324.jpg', 'img_6327.jpg', 'img_6337.jpg',
+            'img_6344.jpg', 'img_6357.jpg', 'img_6379.jpg', 'img_6384.jpg', 'img_6434.jpg', 'img_6441.jpg',
+            'img_6442.jpg', 'img_6446.jpg', 'img_6449.jpg', 'img_6455.jpg', 'img_6456.jpg', 'img_6458.jpg',
+            'img_6459.jpg', 'img_6460.jpg', 'img_6461.jpg', 'img_6463.jpg', 'img_6464.jpg', 'img_6465.jpg',
+            'img_6467.jpg', 'img_6468.jpg', 'img_6473.jpg', 'img_6474.jpg', 'img_6475.jpg', 'img_6476.jpg',
+            'img_6477.jpg', 'img_6478.jpg', 'img_6479.jpg', 'img_6480.jpg', 'img_6481.jpg', 'img_6482.jpg',
+            'img_6483.jpg', 'img_6484.jpg', 'img_6495.jpg', 'img_6517.jpg', 'img_6525.jpg', 'img_6527.jpg',
+            'img_6530.jpg', 'img_6533.jpg', 'img_6536.jpg', 'img_6551.jpg', 'img_6560.jpg', 'img_6561.jpg',
+            'img_6563.jpg', 'img_6564.jpg', 'img_6571.jpg', 'img_6576.jpg', 'img_6580.jpg', 'img_6583.jpg',
+            'img_6591.jpg', 'img_6636.jpg', 'img_6638.jpg', 'img_6685.jpg', 'img_6687.jpg', 'img_6694.jpg',
+            'img_6698.jpg', 'img_6700.jpg', 'img_6702.jpg', 'img_6729.jpg', 'img_6732.jpg', 'img_6734.jpg',
+            'img_6737.jpg', 'img_6740.jpg', 'img_6752.jpg', 'img_6753.jpg', 'img_6754.jpg', 'img_6767.jpg',
+            'img_6770.jpg', 'img_6771.jpg', 'img_6787.jpg', 'img_6795.jpg', 'img_6808.jpg', 'img_6814.jpg',
+            'img_6820.jpg', 'img_6821.jpg', 'img_6822.jpg', 'img_6826.jpg', 'img_6834.jpg', 'img_6835.jpg',
+            'img_6838.jpg', 'img_6856.jpg', 'img_6862.jpg', 'img_6866.jpg', 'img_6868.jpg', 'img_6871.jpg',
+            'img_6874.jpg', 'img_6882.jpg', 'img_6883.jpg', 'img_6884.jpg', 'img_6893.jpg', 'img_6896.jpg',
+            'img_6908.jpg', 'img_6911.jpg', 'img_6912.jpg', 'img_6913.jpg', 'img_6918.jpg', 'img_6920.jpg',
+            'img_6926.jpg', 'img_6947.jpg', 'img_6959.jpg', 'img_6963.jpg', 'img_6970.jpg', 'img_6971.jpg',
+            'img_6972.jpg', 'img_6986.jpg', 'img_6999.jpg', 'img_7001.jpg', 'img_7003.jpg', 'img_7004.jpg',
+            'img_7005.jpg', 'img_7006.jpg', 'img_7007.jpg', 'img_7010.jpg', 'img_7018.jpg', 'img_7027.jpg',
+            'img_7028.jpg', 'img_7029.jpg', 'img_7034.jpg', 'img_7036.jpg', 'img_7052.jpg', 'img_7057.jpg',
+            'img_7058.jpg', 'img_7059.jpg', 'img_7060.jpg', 'img_7061.jpg', 'img_7062.jpg', 'img_7063.jpg',
+            'img_7064.jpg', 'img_7079.jpg', 'img_7081.jpg', 'img_7082.jpg', 'img_7083.jpg', 'img_7093.jpg',
+            'img_7104.jpg', 'img_7110.jpg', 'img_7111.jpg', 'img_7112.jpg', 'img_7113.jpg', 'img_7114 2.jpg',
+            'img_7114.jpg', 'img_7115.jpg', 'img_7116.jpg', 'img_7117.jpg', 'img_7118.jpg', 'img_7119.jpg',
+            'img_7120.jpg', 'img_7121.jpg', 'img_7122.jpg', 'img_7123.jpg', 'img_7124.jpg', 'img_7125.jpg',
+            'img_7126.jpg', 'img_7127.jpg', 'img_7128.jpg', 'img_7129.jpg', 'img_7130 2.jpg', 'img_7131.jpg',
+            'img_7132.jpg', 'img_7134.jpg', 'img_7135.jpg', 'img_7136.jpg', 'img_7137.jpg', 'img_7138.jpg',
+            'img_7139.jpg', 'img_7140.jpg', 'img_7141.jpg', 'img_7142 2.jpg', 'img_7142.jpg', 'img_7143.jpg',
+            'img_7144.jpg', 'img_7145.jpg', 'img_7146.jpg', 'img_7147.jpg', 'img_7148.jpg', 'img_7149.jpg',
+            'img_7150.jpg', 'img_7151.jpg', 'img_7152.jpg', 'img_7153.jpg', 'img_7154.jpg', 'img_7155.jpg',
+            'img_7156.jpg', 'img_7157.jpg', 'img_7158.jpg', 'img_7159.jpg', 'img_7160.jpg', 'img_7161.jpg',
+            'img_7162.jpg', 'img_7163.jpg', 'img_7164.jpg', 'img_7166.jpg', 'img_7172.jpg', 'img_7173.jpg',
+            'img_7174.jpg', 'img_7175.jpg', 'img_7176.jpg', 'img_7177.jpg', 'img_7178.jpg', 'img_7179.jpg',
+            'img_7180.jpg', 'img_7224.jpg', 'img_7225 2.jpg', 'img_7227.jpg', 'img_7234.jpg', 'img_7235 2.jpg',
+            'img_7248.jpg', 'img_7249 2.jpg', 'img_7268.jpg', 'img_7269.jpg', 'img_7270 2.jpg', 'img_7270.jpg',
+            'img_7280.jpg', 'img_7281.jpg', 'img_7292.jpg', 'img_7301.jpg', 'img_7303.jpg', 'img_7304.jpg',
+            'img_7305.jpg', 'img_7306.jpg', 'img_7307.jpg', 'img_7308.jpg', 'img_7309.jpg', 'img_7313.jpg',
+            'img_7314.jpg', 'img_7315.jpg', 'img_7316.jpg', 'img_7317.jpg', 'img_7318.jpg', 'img_7319.jpg',
+            'img_7320.jpg', 'img_7321.jpg', 'img_7322.jpg', 'img_7346.jpg', 'img_7348.jpg', 'img_7349.jpg',
+            'img_7388.jpg', 'img_7391.jpg', 'img_7392.jpg', 'img_7393.jpg', 'img_7394.jpg', 'img_7399.jpg',
+            'img_7402.jpg', 'img_7403.jpg', 'img_7431.jpg', 'img_7497.jpg', 'img_7498.jpg', 'img_7499.jpg',
+            'img_7500.jpg', 'img_7501.jpg', 'img_7502.jpg', 'img_7503.jpg', 'img_7504.jpg', 'img_7505.jpg',
+            'img_7506.jpg', 'img_7507.jpg', 'img_7508.jpg', 'img_7509.jpg', 'img_7510.jpg', 'img_7511.jpg',
+            'img_7512.jpg', 'img_7513.jpg', 'img_7514.jpg', 'img_7515.jpg', 'img_7516.jpg', 'img_7517.jpg',
+            'img_7518.jpg', 'img_7519.jpg', 'img_7520.jpg', 'img_7521.jpg', 'img_7522.jpg', 'img_7523.jpg',
+            'img_7525.jpg', 'img_7527.jpg', 'img_7528.jpg', 'img_7529.jpg', 'img_7539.jpg', 'img_7540.jpg',
+            'img_7541.jpg', 'img_7542.jpg', 'img_7543.jpg', 'img_7544.jpg', 'img_7545.jpg', 'img_7567.jpg',
+            'img_7626.jpg', 'img_7627.jpg', 'img_7628.jpg', 'img_7630.jpg', 'img_7631.jpg', 'img_7632.jpg',
+            'img_7633.jpg', 'img_7644.jpg', 'img_7660.jpg', 'img_7661.jpg', 'img_7662.jpg', 'img_7664.jpg',
+            'img_7665.jpg', 'img_7667.jpg', 'img_7668.jpg', 'img_7670.jpg', 'img_7672.jpg', 'img_7673.jpg',
+            'img_7676.jpg', 'img_7677.jpg', 'img_7678.jpg', 'img_7680.jpg', 'img_7681.jpg', 'img_7682.jpg',
+            'img_7728.jpg', 'img_7729.jpg', 'img_7809.jpg', 'img_7869.jpg', 'img_7906.jpg', 'img_7916.jpg',
+            'img_7924.jpg', 'img_7925.jpg', 'img_7926.jpg', 'img_7927.jpg', 'img_7931.jpg', 'img_7932.jpg',
+            'img_7933.jpg', 'img_7934.jpg', 'img_7935.jpg', 'img_7936.jpg', 'img_7941.jpg', 'img_7943.jpg',
+            'img_7944.jpg', 'img_7945.jpg', 'img_7946.jpg', 'img_7947.jpg', 'img_7948.jpg', 'img_7950.jpg',
+            'img_7952.jpg', 'img_7953.jpg', 'img_7955.jpg', 'img_7956.jpg', 'img_7958.jpg', 'img_7961.jpg',
+            'img_7962.jpg', 'img_7964.jpg', 'img_7965.jpg', 'img_7966.jpg', 'img_7967.jpg', 'img_7968.jpg',
+            'img_7969.jpg', 'img_7970.jpg', 'img_7971.jpg', 'img_7974.jpg', 'img_7975.jpg', 'img_7976.jpg',
+            'img_7977.jpg', 'img_7978.jpg', 'img_7979.jpg', 'img_7980.jpg', 'img_7981.jpg', 'img_7988.jpg',
+            'img_7990.jpg', 'img_7991.jpg', 'img_7993.jpg', 'img_7994.jpg', 'img_7995.jpg', 'img_7996.jpg',
+            'img_7999.jpg', 'img_8001.jpg', 'img_8002.jpg', 'img_8004.jpg', 'img_8005.jpg', 'img_8006.jpg',
+            'img_8007.jpg', 'img_8009.jpg', 'img_8010.jpg', 'img_8011.jpg', 'img_8012.jpg', 'img_8013.jpg',
+            'img_8014.jpg', 'img_8048.jpg', 'img_8049.jpg', 'img_8050.jpg', 'img_8051.jpg', 'img_8062.jpg',
+            'img_8097.jpg', 'img_8122.jpg', 'img_8125.jpg', 'img_8134.jpg', 'img_8135.jpg', 'img_8136.jpg',
+            'img_8138.jpg', 'img_8139.jpg', 'img_8149.jpg', 'img_8151.jpg', 'img_8168.jpg', 'img_8169.jpg',
+            'img_8170.jpg', 'img_8230.jpg', 'img_8345.jpg', 'img_8372.jpg', 'img_8376.jpg', 'img_8393.jpg',
+            'img_8394.jpg', 'img_8434.jpg', 'img_8435.jpg', 'img_8436.jpg', 'img_8437.jpg', 'img_8439.jpg',
+            'img_8440.jpg', 'img_8441.jpg', 'img_8442.jpg', 'img_8444.jpg', 'img_8445.jpg', 'img_8446.jpg',
+            'img_8477.jpg', 'img_8479.jpg', 'img_8480.jpg', 'img_8517.jpg', 'img_8521.jpg', 'img_8522.jpg',
+            'img_8537.jpg', 'img_8538.jpg', 'img_8544.jpg', 'img_8556.jpg', 'img_8557.jpg', 'img_8558.jpg',
+            'img_8559.jpg', 'img_8560.jpg', 'img_8564.jpg', 'img_8565.jpg', 'img_8567.jpg', 'img_8570.jpg',
+            'img_8571.jpg', 'img_8572.jpg', 'img_8573.jpg', 'img_8599.jpg', 'img_8600.jpg', 'img_8630.jpg',
+            'img_8635.jpg', 'img_8639.jpg', 'img_8640.jpg', 'img_8641.jpg', 'img_8642.jpg', 'img_8650 1.jpg',
+            'img_8650.jpg', 'img_8661.jpg', 'img_8731.jpg', 'img_8732.jpg', 'img_8733.jpg', 'img_8741.jpg',
+            'img_8742.jpg', 'img_8759.jpg', 'img_8769.jpg', 'img_8770.jpg', 'img_9019.jpg', 'img_9020.jpg',
+            'img_9021.jpg', 'img_9022.jpg', 'img_9023.jpg', 'img_9045.jpg', 'img_9046.jpg', 'img_9048.jpg',
+            'img_9056.jpg', 'img_9062.jpg', 'img_9073.jpg', 'img_9080.jpg', 'img_9156.jpg', 'img_9171.jpg',
+            'img_9192.jpg', 'img_9234.jpg', 'img_9235.jpg', 'img_9236.jpg', 'img_9240.jpg', 'img_9266.jpg',
+            'img_9284.jpg', 'img_9297.jpg', 'img_9356.jpg', 'img_9371.jpg', 'img_9385.jpg', 'img_9468.jpg',
+            'img_9469.jpg', 'img_9470.jpg', 'img_9473.jpg', 'img_9504.jpg', 'img_9556.jpg', 'img_9597.jpg',
+            'img_9610.jpg', 'img_9639.jpg', 'img_9706.jpg', 'img_9707.jpg', 'img_9726.jpg', 'img_9923.jpg',
+            'img_9924.jpg', 'img_9930.jpg', 'img_e1560.jpg', 'img_e1896.jpg', 'img_e3622.jpg', 'img_e5851.jpg',
+            'img_e6721.jpg', 'img_e6989.jpg', 'img_e6999.jpg', 'img_e7174.jpg', 'keps5920.jpg', 'lkef9542.jpg',
+            'lwuo0031.jpg', 'mjmg7927.jpg', 'odpb8684.jpg', 'odve7327.jpg', 'ofqd9214.jpg', 'okix5198.jpg',
+            'onqp6710 1.jpg', 'onqp6710.jpg', 'oqyv0865.jpg', 'ownz5517.jpg', 'paer6705.jpg', 'pdpv4050.jpg',
+            'pgij7579.jpg', 'pmwn6310.jpg', 'qbfc2909.jpg', 'qhrh3984.jpg', 'qsmb3707.jpg', 'rskb4856.jpg',
+            'ryvh3511.jpg', 'tdac4157.jpg', 'tesy7984.jpg', 'tkpi2681.jpg', 'tlax5148.jpg', 'ueoi4984.jpg',
+            'uhmb4553.jpg', 'uwpp7984.jpg', 'vixt7995.jpg', 'vqez8612.jpg', 'vqoo0291.jpg', 'vtiz5355.jpg',
+            'wyhr7256.jpg', 'xlnx9283.jpg', 'xmcc6516.jpg', 'xsce6262.jpg', 'yelq0785 1.jpg', 'yelq0785.jpg',
+            'ygdb6169 1.jpg', 'ygdb6169.jpg', 'yjrp8145.jpg'
         ];
+
         
         const status = document.getElementById("status");
 
@@ -401,11 +562,11 @@
             }
             panels.length = 0;
 
-            const itemsToLoad = Math.min(imageList.length, 100);
+            const itemsToLoad = imageList.length;
             let loadedCount = 0;
             
             for (let i = 0; i < itemsToLoad; i++) {
-                const imagePath = imageFolder + imageList[i];
+                const imagePath = encodeURI(imageFolder + imageList[i]);
                 const baseSize = 1.5;
                 
                 const geo = new THREE.PlaneGeometry(baseSize, baseSize);
@@ -612,33 +773,52 @@
             status.textContent = text;
         }
 
-        const hands = new Hands({
-            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-        });
-
-        hands.setOptions({
-            maxNumHands: 2,
-            modelComplexity: 1,
-            minDetectionConfidence: 0.7,
-            minTrackingConfidence: 0.7
-        });
-
-        hands.onResults(onResults);
-
-        const cameraMP = new Camera(videoElement, {
-            onFrame: async () => {
-                await hands.send({ image: videoElement });
-            },
-            width: 640,
-            height: 480
-        });
-
-        cameraMP.start().catch(() => {
+        function enableMouseFallback(reason) {
             mouseMode = true;
             const toggleBtn = document.getElementById('toggleMode');
             if (toggleBtn) toggleBtn.textContent = 'Switch to Hand Mode';
             updateStatus('🖱️ Camera non disponibile — Mouse mode attivo');
-        });
+            console.warn('Hand tracking disabilitato:', reason);
+        }
+
+        if (!window.isSecureContext) {
+            // getUserMedia richiede un contesto sicuro (https:// o localhost).
+            // Se la pagina viene aperta con file://, la camera non parte mai.
+            enableMouseFallback('Pagina non servita in contesto sicuro (usa http://localhost o https://).');
+        } else if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            enableMouseFallback('getUserMedia non supportato da questo browser.');
+        } else if (typeof Hands === 'undefined' || typeof Camera === 'undefined') {
+            enableMouseFallback('Librerie MediaPipe non caricate correttamente.');
+        } else {
+            const hands = new Hands({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`
+            });
+
+            hands.setOptions({
+                maxNumHands: 2,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.7,
+                minTrackingConfidence: 0.7
+            });
+
+            hands.onResults(onResults);
+
+            const cameraMP = new Camera(videoElement, {
+                onFrame: async () => {
+                    await hands.send({ image: videoElement });
+                },
+                width: 640,
+                height: 480
+            });
+
+            cameraMP.start()
+                .then(() => {
+                    updateStatus('✋ Camera attiva - mostra le mani');
+                })
+                .catch((err) => {
+                    enableMouseFallback(err && err.message ? err.message : err);
+                });
+        }
 
         function onResults(results) {
             canvasElement.width = videoElement.videoWidth;
