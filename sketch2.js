@@ -362,20 +362,22 @@ function startTouchPan(pointerId) {
 function onTouchPointerDown(e) {
   if (e.pointerType !== 'touch') return; // non interferire con mouse/pen desktop
 
+  // Se il tocco parte sulla UI, NON lo tracciamo nella mappa dei touch del canvas:
+  // altrimenti un tap rapido su due elementi UI diversi (o un dito sulla UI mentre
+  // l'altro è sul canvas) farebbe salire activeTouchPointers.size a 2 e scatterebbe
+  // erroneamente la modalità pinch, con preventDefault() che blocca il click.
+  if (isUITarget(e.target)) {
+    return; // lascia che il tap diventi un click/tap normale sulla UI
+  }
+
   activeTouchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
   if (activeTouchPointers.size === 1) {
-    // Primo dito: se è sulla UI, nessun preventDefault, resta un tap/click normale.
-    if (isUITarget(e.target)) {
-      isTouchPanning = false;
-      touchPanPointerId = null;
-      return;
-    }
     e.preventDefault();
     startTouchPan(e.pointerId);
   } else if (activeTouchPointers.size === 2) {
-    // Secondo dito: entra SEMPRE in pinch, anche se uno dei due tocchi è iniziato
-    // sopra #classSelector/.container, così la UI non "ruba" un touch al pinch.
+    // Secondo dito: entra in pinch solo se ENTRAMBI i tocchi sono sul canvas
+    // (i tocchi sulla UI non vengono mai aggiunti alla mappa, vedi sopra).
     e.preventDefault();
     isTouchPanning = false;
     touchPanPointerId = null;

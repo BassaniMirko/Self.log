@@ -1173,21 +1173,24 @@ function startTouchPanTempo(pointerId) {
 function onTouchPointerDownTempo(e) {
   if (e.pointerType !== 'touch') return; // non interferire con mouse/pen desktop
 
+  // Se il tocco parte sulla UI (bottoni/filtri/slider), NON lo tracciamo affatto nella
+  // mappa dei touch del canvas: altrimenti un tap rapido su due filtri diversi (o un
+  // secondo dito che tocca un filtro mentre il primo e' sul canvas) farebbe salire
+  // activeTouchPointersTempo.size a 2 e scatterebbe erroneamente la modalita pinch,
+  // con preventDefault() che blocca il click sul bottone.
+  if (isUITargetTempo(e.target)) {
+    return; // lascia che il tap diventi un click/tap normale sulla UI
+  }
+
   activeTouchPointersTempo.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
   if (activeTouchPointersTempo.size === 1) {
-    // Primo dito: se è sulla UI/slider, nessun preventDefault, resta un tap normale.
-    if (isUITargetTempo(e.target)) {
-      isTouchPanningTempo = false;
-      touchPanPointerIdTempo = null;
-      return;
-    }
     e.preventDefault();
     document.body.style.cursor = 'grabbing';
     startTouchPanTempo(e.pointerId);
   } else if (activeTouchPointersTempo.size === 2) {
-    // Secondo dito: entra SEMPRE in pinch, anche se uno dei due tocchi è iniziato
-    // sopra la UI, così i filtri/slider non "rubano" un touch al pinch.
+    // Secondo dito: entra in pinch solo se ENTRAMBI i tocchi sono sul canvas
+    // (i tocchi sulla UI non vengono mai aggiunti alla mappa, vedi sopra).
     e.preventDefault();
     isTouchPanningTempo = false;
     touchPanPointerIdTempo = null;
