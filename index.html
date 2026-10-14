@@ -250,7 +250,7 @@ s
         height: 100% !important;
         touch-action: none;
       }
-      
+
       .footer {
             position: fixed;
             bottom: 12px;
@@ -326,7 +326,12 @@ s
     scene.background = new THREE.Color(0x000000);
 
     const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 4, 6); // Aumenta la distanza per vedere meglio il modello
+    // Vista DALL'ALTO durante la generazione del modello (vista "come ora"). Una volta
+    // completata la costruzione/texture, la camera viene animata verso la vista FRONTALE
+    // (stesso principio del punto di vista in sketch2.js: camera.lookAt usa la stessa Y
+    // della camera, quindi è una vista dritta, senza inclinazione), vedi animateCameraToFrontalView.
+    const FINAL_CAMERA_POSITION = { x: 0, y: 0, z: 6 }; // vista frontale, stessa altezza del target (0,0,0)
+    camera.position.set(0, 4, 6); // vista leggermente dall'alto iniziale
 
     // Modifica l'inizializzazione del renderer
     const container = document.querySelector('#visualizzazione3D');
@@ -422,7 +427,11 @@ s
               );
               
               // Applica posizione e scala
-              constructedMesh.position.copy(center).multiplyScalar(-1);
+              // NB: la posizione va scalata dello stesso fattore "scale" applicato alla mesh,
+              // perché la trasformazione di Three.js è position + rotazione*scala*vertice:
+              // usando solo "-center" (senza scala) il modello restava decentrato quando
+              // scale != 1 (praticamente sempre, dato che scale = 5/maxDim).
+              constructedMesh.position.copy(center).multiplyScalar(-scale);
               constructedMesh.scale.multiplyScalar(scale);
               
               scene.add(constructedMesh);
@@ -479,10 +488,35 @@ s
       updateConstruction();
     }
 
+    // Anima la camera dalla vista dall'alto (usata durante la generazione) alla vista
+    // finale FRONTALE, senza interferire con OrbitControls: OrbitControls ricalcola le
+    // coordinate sferiche dalla posizione corrente della camera ad ogni update(),
+    // quindi è sufficiente animare camera.position ad ogni frame.
+    function animateCameraToFrontalView(duration = 2000) {
+        const start = camera.position.clone();
+        const target = new THREE.Vector3(FINAL_CAMERA_POSITION.x, FINAL_CAMERA_POSITION.y, FINAL_CAMERA_POSITION.z);
+        const startTime = Date.now();
+
+        function update() {
+            const progress = Math.min((Date.now() - startTime) / duration, 1);
+            const eased = easeInOutCubic(progress);
+            camera.position.lerpVectors(start, target, eased);
+
+            if (progress < 1) requestAnimationFrame(update);
+        }
+
+        update();
+    }
+
     // Modifica la funzione applyTextures per includere l'animazione di avvicinamento
     function applyTextures() {
         const duration = 2000;
         const startTime = Date.now();
+
+        // La "generazione" (costruzione del wireframe) è terminata: porta la camera
+        // dalla vista dall'alto alla vista finale frontale, in sincrono
+        // con la dissolvenza verso la texture.
+        animateCameraToFrontalView(duration);
         
         function updateMaterial() {
             const progress = (Date.now() - startTime) / duration;
